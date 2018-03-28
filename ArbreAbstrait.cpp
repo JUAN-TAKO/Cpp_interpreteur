@@ -4,6 +4,7 @@
 #include "SymboleValue.h"
 #include "Exceptions.h"
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudSeqInst
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,9 +58,14 @@ int NoeudOperateurBinaire::executer() {
   else if (this->m_operateur == ">") valeur = (og > od);
   else if (this->m_operateur == "<=") valeur = (og <= od);
   else if (this->m_operateur == ">=") valeur = (og >= od);
-  else if (this->m_operateur == "et") valeur = (og && od);
-  else if (this->m_operateur == "ou") valeur = (og || od);
-  else if (this->m_operateur == "non") valeur = (!og);
+  else if (this->m_operateur == "and") valeur = (og && od);
+  else if (this->m_operateur == "or") valeur = (og || od);
+  else if (this->m_operateur == "not") valeur = (!og);
+  else if (this->m_operateur == "xor") valeur = (og != od);
+  else if (this->m_operateur == "%") {
+    if (od == 0) throw DivParZeroException();
+    valeur = og % od;
+  }
   else if (this->m_operateur == "/") {
     if (od == 0) throw DivParZeroException();
     valeur = og / od;

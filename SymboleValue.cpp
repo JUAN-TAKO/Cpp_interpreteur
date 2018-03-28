@@ -1,7 +1,7 @@
 #include "SymboleValue.h"
 #include "Exceptions.h"
 #include <stdlib.h>
-
+#include <string>
 SymboleValue::SymboleValue(const Symbole & s) :
 Symbole(s.getChaine()) {
   if (s == "<ENTIER>") {

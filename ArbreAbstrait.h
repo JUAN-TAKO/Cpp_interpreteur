@@ -5,6 +5,7 @@
 //  pour représenter l'arbre abstrait
 
 #include <vector>
+#include <string>
 #include <iostream>
 #include <iomanip>
 using namespace std;
@@ -79,6 +80,15 @@ class NoeudInstSi : public Noeud {
   private:
     Noeud*  m_condition;
     Noeud*  m_sequence;
+};
+class NoeudInstRepeter : public Noeud{
+public:
+    NoeudInstRepeter(Noeud* sequence, Noeud* condition);
+    ~NoeudInstSi() {}
+    int executer();
+private:
+    Noeud*  m_sequence;
+    Noeud*  m_condition;
 };
 
 #endif /* ARBREABSTRAIT_H */
