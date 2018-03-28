@@ -100,11 +100,27 @@ class NoeudInstTantQue : public Noeud {
   public:
     NoeudInstTantQue(Noeud* condition, Noeud* sequence);
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
-   ~NoeudInstTant() {} // A cause du destructeur virtuel de la classe Noeud
+   ~NoeudInstTantQue() {} // A cause du destructeur virtuel de la classe Noeud
     int executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
 
   private:
     Noeud*  m_condition;
+    Noeud*  m_sequence;
+};
+
+class NoeudInstPour : public Noeud {
+// Classe pour représenter un noeud "instruction ta,t que"
+//  et ses 2 fils : la condition du tant que et la séquence d'instruction associée
+  public:
+    NoeudInstPour(Noeud* initialisation, Noeud* condition,Noeud* iteration, Noeud* sequence);
+     // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
+   ~NoeudInstPour() {} // A cause du destructeur virtuel de la classe Noeud
+    int executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+
+  private:
+    Noeud*  m_initialisation;
+    Noeud*  m_condition;
+    Noeud*  m_iteration;
     Noeud*  m_sequence;
 };
 

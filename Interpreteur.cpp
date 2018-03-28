@@ -56,7 +56,8 @@ Noeud* Interpreteur::seqInst() {
   NoeudSeqInst* sequence = new NoeudSeqInst();
   do {
     sequence->ajoute(inst());
-  } while (m_lecteur.getSymbole() == "<VARIABLE>" || m_lecteur.getSymbole() == "if" || m_lecteur.getSymbole() == "while");
+  } while (m_lecteur.getSymbole() == "<VARIABLE>" || m_lecteur.getSymbole() == "if" ||
+           m_lecteur.getSymbole() == "while"      || m_lecteur.getSymbole() == "for"  );
   // Tant que le symbole courant est un début possible d'instruction...
   // Il faut compléter cette condition chaque fois qu'on rajoute une nouvelle instruction
   return sequence;
@@ -71,6 +72,8 @@ Noeud* Interpreteur::inst() {
   }
   else if (m_lecteur.getSymbole() == "if")
     return instSi();
+  else if (m_lecteur.getSymbole() == "for")
+    return instPour();
   else if (m_lecteur.getSymbole() == "while")
     return instTantQue();
   // Compléter les alternatives chaque fois qu'on rajoute une nouvelle instruction
@@ -127,6 +130,31 @@ Noeud* Interpreteur::facteur() {
   } else
     erreur("Facteur incorrect");
   return fact;
+}
+
+Noeud* Interpreteur::instSi() {
+  // <instSi> ::= si ( <expression> ) <seqInst> finsi
+  testerEtAvancer("if");
+  testerEtAvancer("(");
+  Noeud* condition = expression(); // On mémorise la condition
+  testerEtAvancer(")");
+  Noeud* sequence = seqInst();     // On mémorise la séquence d'instruction
+  testerEtAvancer("end");
+  return new NoeudInstSi(condition, sequence); // Et on renvoie un noeud Instruction Si
+}
+
+Noeud*  Interpreteur::instPour(){
+    testerEtAvancer("for");
+    testerEtAvancer("(");
+    Noeud* init = affectation();
+    testerEtAvancer(";");
+    Noeud* cond = expression();
+    testerEtAvancer(";");
+    Noeud* iter = affectation();
+    testerEtAvancer(")");
+    Noeud* seq= seqInst();
+    testerEtAvancer("end");
+    return new NoeudInstPour(init,cond,iter,seq);
 }
 
 Noeud*  Interpreteur::instTantQue(){
