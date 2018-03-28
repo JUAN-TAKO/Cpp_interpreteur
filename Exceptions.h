@@ -1,20 +1,63 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 /* 
  * File:   Exceptions.h
- * Author: royetju
+ * Author: martin
  *
- * Created on 28 mars 2018, 08:35
+ * Created on 7 décembre 2014, 19:08
  */
 
 #ifndef EXCEPTIONS_H
-#define EXCEPTIONS_H
+#define	EXCEPTIONS_H
+#include <exception>
+#include <string>
+using namespace std;
+
+// Classe mère de toutes les exceptions de l'interpréteur
+class InterpreteurException : public exception {
+public:
+    const char * what() const throw() {
+        return "Exception Interpreteur";
+    }
+};
+
+class FichierException : public InterpreteurException {
+public:
+    const char * what() const throw() {
+        return "Ouverture Fichier Impossible";
+    }
+};
+
+class SyntaxeException : public InterpreteurException {
+public:
+    SyntaxeException(const char * message = NULL) : m_message(message) {}
+    const char * what() const throw() {
+        return m_message;
+    }
+private :
+    const char* m_message;
+};
 
 
+class IndefiniException : public InterpreteurException {
+public:
+    const char * what() const throw() {
+        return "Valeur Indéfinie";
+    }
+};
 
-#endif /* EXCEPTIONS_H */
+
+class DivParZeroException : public InterpreteurException {
+public:
+    const char * what() const throw() {
+        return "Division par 0";
+    }
+};
+
+class OperationInterditeException : public InterpreteurException {
+public:
+    const char * what() const throw() {
+        return "Operation Interdite sur un noeud";
+    }
+};
+
+#endif	/* EXCEPTIONS_H */
 
