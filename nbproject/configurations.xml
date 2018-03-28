@@ -12,10 +12,9 @@
       <itemPath>SymboleValue.h</itemPath>
       <itemPath>TableSymboles.h</itemPath>
     </logicalFolder>
-    <logicalFolder name="f1"
-                   displayName="Resource Files"
-                   projectFiles="true"
-                   kind="ROOT">
+    <logicalFolder name="f1" displayName="Resource Files" projectFiles="true">
+      <itemPath>motsCles.txt</itemPath>
+      <itemPath>programme.txt</itemPath>
     </logicalFolder>
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
@@ -28,8 +27,6 @@
       <itemPath>SymboleValue.cpp</itemPath>
       <itemPath>TableSymboles.cpp</itemPath>
       <itemPath>main.cpp</itemPath>
-      <itemPath>motsCles.txt</itemPath>
-      <itemPath>programme.txt</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -52,6 +49,10 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <compileType>
+        <ccTool>
+          <standard>11</standard>
+          <warningLevel>2</warningLevel>
+        </ccTool>
       </compileType>
       <item path="ArbreAbstrait.cpp" ex="false" tool="1" flavor2="0">
       </item>
