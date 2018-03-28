@@ -140,6 +140,12 @@ Noeud* Interpreteur::instSi() {
 }
 
 Noeud*  Interpreteur::instTantQue(){
-    return nullptr;
+    testerEtAvancer("while");
+    testerEtAvancer("(");
+    Noeud* cond = expression();
+    testerEtAvancer(")");
+    Noeud* seq= seqInst();
+    testerEtAvancer("end");
+    return new NoeudInstTantQue(cond,seq);
 }
 
