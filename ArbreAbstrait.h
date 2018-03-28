@@ -81,6 +81,7 @@ class NoeudInstSi : public Noeud {
     Noeud*  m_condition;
     Noeud*  m_sequence;
 };
+
 class NoeudInstRepeter : public Noeud{
 public:
     NoeudInstRepeter(Noeud* sequence, Noeud* condition);
