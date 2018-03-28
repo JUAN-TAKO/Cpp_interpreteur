@@ -113,3 +113,19 @@ int NoeudInstTantQue::executer() {
   while (m_condition->executer()) m_sequence->executer();
   return 0;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// NoeudInstPour
+////////////////////////////////////////////////////////////////////////////////
+
+NoeudInstPour::NoeudInstPour(Noeud* initialisation, Noeud* condition, Noeud* iteration, Noeud* sequence) 
+: m_initialisation(initialisation), m_condition(condition), m_iteration(iteration), m_sequence(sequence) {
+}
+
+
+int NoeudInstPour::executer() {
+  for (m_initialisation->executer();m_condition->executer();m_iteration->executer()){
+      m_sequence->executer();
+  }
+  return 0;
+}
