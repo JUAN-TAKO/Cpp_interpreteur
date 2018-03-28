@@ -2,13 +2,10 @@ def
 main
 end
 for
-endfor
 if
 else
 elseif
-endif
 while
-endwhile
 repeat
 until
 scan
