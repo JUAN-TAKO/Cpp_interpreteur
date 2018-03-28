@@ -1,9 +1,9 @@
 # Fichier de test
 # Les lignes de commentaires commencent par #
-procedure principale()
+def main()
   i = 12+3;
-  si (i>14)
+  if (i>14)
     j=1;
-  finsi
-finproc
+  endif
+end
 # Commentaire Final
