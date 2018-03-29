@@ -12,6 +12,7 @@ SymboleValue * TableSymboles::chercheAjoute(const Symbole & s)
   vector<SymboleValue*>::iterator i;
   i = m_table.begin();
   while (i < m_table.end() && (**i).getChaine() < s.getChaine()) i++;
+  std::cout << "TEST : " << s << std::endl;
   if (i == m_table.end() || (**i).getChaine() != s.getChaine()) // si pas trouvé...
     i = m_table.insert(i, new SymboleValue(s));
   return *i;

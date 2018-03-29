@@ -12,13 +12,13 @@ using namespace std;
 
 #include "Symbole.h"
 #include "Exceptions.h"
-
+class Value;
 ////////////////////////////////////////////////////////////////////////////////
 class Noeud {
 // Classe abstraite dont dériveront toutes les classes servant à représenter l'arbre abstrait
 // Remarque : la classe ne contient aucun constructeur
   public:
-    virtual int  executer() =0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
+    virtual Value  executer() =0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
     virtual void ajoute(Noeud* instruction) { throw OperationInterditeException(); }
     virtual ~Noeud() {} // Présence d'un destructeur virtuel conseillée dans les classes abstraites
 };
@@ -30,7 +30,7 @@ class NoeudSeqInst : public Noeud {
   public:
      NoeudSeqInst();   // Construit une séquence d'instruction vide
     ~NoeudSeqInst() {} // A cause du destructeur virtuel de la classe Noeud
-    int executer();    // Exécute chaque instruction de la séquence
+    Value executer();    // Exécute chaque instruction de la séquence
     void ajoute(Noeud* instruction);  // Ajoute une instruction à la séquence
 
   private:
@@ -44,7 +44,7 @@ class NoeudAffectation : public Noeud {
   public:
      NoeudAffectation(Noeud* variable, Noeud* expression); // construit une affectation
     ~NoeudAffectation() {} // A cause du destructeur virtuel de la classe Noeud
-    int executer();        // Exécute (évalue) l'expression et affecte sa valeur à la variable
+    Value executer();        // Exécute (évalue) l'expression et affecte sa valeur à la variable
 
   private:
     Noeud* m_variable;
@@ -59,7 +59,7 @@ class NoeudOperateurBinaire : public Noeud {
     NoeudOperateurBinaire(Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit);
     // Construit une opération binaire : operandeGauche operateur OperandeDroit
    ~NoeudOperateurBinaire() {} // A cause du destructeur virtuel de la classe Noeud
-    int executer();            // Exécute (évalue) l'opération binaire)
+    Value executer();            // Exécute (évalue) l'opération binaire)
 
   private:
     Symbole m_operateur;
@@ -75,7 +75,7 @@ class NoeudInstSiRiche : public Noeud {
     NoeudInstSiRiche(Noeud* condition, Noeud* sequence);
      // Construit une "instruction si" avec sa condition et sa séquence d'instruction
    ~NoeudInstSiRiche() {} // A cause du destructeur virtuel de la classe Noeud
-    int executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
     void ajoute(Noeud* instruction);
 
   private:
@@ -88,7 +88,7 @@ class NoeudInstRepeter : public Noeud{
 public:
     NoeudInstRepeter(Noeud* sequence, Noeud* condition);
     ~NoeudInstRepeter() {}
-    int executer();
+    Value executer();
 private:
     Noeud*  m_sequence;
     Noeud*  m_condition;
@@ -101,7 +101,7 @@ class NoeudInstTantQue : public Noeud {
     NoeudInstTantQue(Noeud* condition, Noeud* sequence);
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstTantQue() {} // A cause du destructeur virtuel de la classe Noeud
-    int executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
 
   private:
     Noeud*  m_condition;
@@ -115,7 +115,7 @@ class NoeudInstPour : public Noeud {
     NoeudInstPour(Noeud* initialisation, Noeud* condition,Noeud* iteration, Noeud* sequence);
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstPour() {} // A cause du destructeur virtuel de la classe Noeud
-    int executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
 
   private:
     Noeud*  m_initialisation;

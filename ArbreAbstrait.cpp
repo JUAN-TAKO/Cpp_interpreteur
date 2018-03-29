@@ -12,7 +12,7 @@
 NoeudSeqInst::NoeudSeqInst() : m_instructions() {
 }
 
-int NoeudSeqInst::executer() {
+Value NoeudSeqInst::executer() {
   for (unsigned int i = 0; i < m_instructions.size(); i++)
     m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
   return 0; // La valeur renvoyée ne représente rien !
@@ -30,7 +30,7 @@ NoeudAffectation::NoeudAffectation(Noeud* variable, Noeud* expression)
 : m_variable(variable), m_expression(expression) {
 }
 
-int NoeudAffectation::executer() {
+Value NoeudAffectation::executer() {
   int valeur = m_expression->executer(); // On exécute (évalue) l'expression
   ((SymboleValue*) m_variable)->setValeur(valeur); // On affecte la variable
   return 0; // La valeur renvoyée ne représente rien !
@@ -44,8 +44,8 @@ NoeudOperateurBinaire::NoeudOperateurBinaire(Symbole operateur, Noeud* operandeG
 : m_operateur(operateur), m_operandeGauche(operandeGauche), m_operandeDroit(operandeDroit) {
 }
 
-int NoeudOperateurBinaire::executer() {
-  int og, od, valeur;
+Value NoeudOperateurBinaire::executer() {
+  Value og, od, valeur;
   if (m_operandeGauche != nullptr) og = m_operandeGauche->executer(); // On évalue l'opérande gauche
   if (m_operandeDroit != nullptr) od = m_operandeDroit->executer(); // On évalue l'opérande droit
   // Et on combine les deux opérandes en fonctions de l'opérateur
@@ -63,11 +63,11 @@ int NoeudOperateurBinaire::executer() {
   else if (this->m_operateur == "not") valeur = (!og);
   else if (this->m_operateur == "xor") valeur = (og != od);
   else if (this->m_operateur == "%") {
-    if (od == 0) throw DivParZeroException();
+    if (od == Value(0)) throw DivParZeroException();
     valeur = og % od;
   }
   else if (this->m_operateur == "/") {
-    if (od == 0) throw DivParZeroException();
+    if (od == Value(0)) throw DivParZeroException();
     valeur = og / od;
   }
   return valeur; // On retourne la valeur calculée
@@ -83,7 +83,7 @@ NoeudInstSiRiche::NoeudInstSiRiche(Noeud* condition, Noeud* sequence)
   m_sequences.push_back(sequence);
 }
 
-int NoeudInstSiRiche::executer() {
+Value NoeudInstSiRiche::executer() {
     unsigned int i;
     for(i = 0; i < m_conditions.size() && !m_conditions[i]->executer(); i++);
     if(i < m_conditions.size() || m_conditions.size() < m_sequences.size())
@@ -106,7 +106,7 @@ NoeudInstRepeter::NoeudInstRepeter(Noeud* sequence, Noeud* condition)
 : m_sequence(sequence)
 , m_condition(condition)
 {}
-int NoeudInstRepeter::executer(){
+Value NoeudInstRepeter::executer(){
     do{
         m_sequence->executer();
     }
@@ -121,7 +121,7 @@ NoeudInstTantQue::NoeudInstTantQue(Noeud* condition, Noeud* sequence)
 : m_condition(condition), m_sequence(sequence) {
 }
 
-int NoeudInstTantQue::executer() {
+Value NoeudInstTantQue::executer() {
   while (m_condition->executer()) m_sequence->executer();
   return 0;
 }
@@ -135,7 +135,7 @@ NoeudInstPour::NoeudInstPour(Noeud* initialisation, Noeud* condition, Noeud* ite
 }
 
 
-int NoeudInstPour::executer() {
+Value NoeudInstPour::executer() {
   for (m_initialisation->executer();m_condition->executer();m_iteration->executer()){
       m_sequence->executer();
   }

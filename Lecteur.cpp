@@ -65,7 +65,7 @@ string Lecteur::motSuivant() {
   else if(m_lecteurCar.getCaractere() == '.'){
     s = s + m_lecteurCar.getCaractere();
     m_lecteurCar.avancer();
-    if(isalpha(m_lecteurCar.getCaractere())){
+    if(isdigit(m_lecteurCar.getCaractere())){
       s = s + m_lecteurCar.getCaractere();
       m_lecteurCar.avancer();
       while (isalpha(m_lecteurCar.getCaractere()) || isdigit(m_lecteurCar.getCaractere())){

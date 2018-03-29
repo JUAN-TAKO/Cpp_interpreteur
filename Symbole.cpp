@@ -6,29 +6,29 @@ using namespace std;
 
 #include "Symbole.h"
 
-const char * Symbole::FICHIER_MOTS_CLES = "motsCles.txt";
+const char* Symbole::FICHIER_MOTS_CLES = "motsCles.txt";
 
 Symbole::Symbole(const string & s) : m_chaine(s) {
   // attention : l'ordre des tests ci-dessous n'est pas innocent !
   if (s == "") this->m_categorie = FINDEFICHIER;
   else if (isdigit(s[0])){
-      int i;
-      for(i = 0; i < s.size() && s[i] != '.' && !isalpha(s[i]); i++);
-      if(isalpha(s[i])){
+      unsigned int i;
+      this->m_categorie = ENTIER;
+      for(i = 0; i < s.size() && !isalpha(s[i]); i++){
+        if(s[i] == '.')
+            this->m_categorie = REEL;
+      }
+      if(i < s.size()){
           this->m_categorie = INDEFINI;
       }
-      else if(s[i] == '.'){
-          
-          ////////////////
-          this->m_categorie = REEL;
-      }
-      else{
-          
-      }
-      this->m_categorie = ENTIER;
   }
   else if (s[0] == '.'){
-      
+      this->m_categorie = REEL;
+      unsigned int i;
+      for(i = 0; i < s.size() && !isalpha(s[i]); i++);
+      if(i < s.size()){
+          this->m_categorie = INDEFINI;
+      }
   }
   else if (s.size() >= 2 && s[0] == '"' && s[s.size() - 1] == '"') this->m_categorie = CHAINE;
   else if (isMotCle(s)) this->m_categorie = MOTCLE;
@@ -40,7 +40,7 @@ bool Symbole::operator==(const string & ch) const {
   return this->m_chaine == ch ||
           (this->m_categorie == VARIABLE && (ch == "<VARIABLE>" || ch == "<variable>")) ||
           (this->m_categorie == ENTIER && (ch == "<ENTIER>" || ch == "<entier>")) ||
-          (this->m_categorie == ENTIER && (ch == "<REEL>" || ch == "<reel>")) ||
+          (this->m_categorie == REEL && (ch == "<REEL>" || ch == "<reel>")) ||
           (this->m_categorie == CHAINE && (ch == "<CHAINE>" || ch == "<chaine>")) ||
           (this->m_categorie == INDEFINI && (ch == "<INDEFINI>" || ch == "<indefini>")) ||
           (this->m_categorie == FINDEFICHIER && (ch == "<FINDEFICHIER>" || ch == "<findefichier>"));

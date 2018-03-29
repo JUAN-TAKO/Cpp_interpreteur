@@ -116,7 +116,7 @@ Noeud* Interpreteur::expression() {
 Noeud* Interpreteur::facteur() {
   // <facteur> ::= <entier> | <variable> | - <facteur> | non <facteur> | ( <expression> )
   Noeud* fact = nullptr;
-  if (m_lecteur.getSymbole() == "<VARIABLE>" || m_lecteur.getSymbole() == "<ENTIER>") {
+  if (m_lecteur.getSymbole() == "<VARIABLE>" || m_lecteur.getSymbole() == "<ENTIER>" || m_lecteur.getSymbole() == "<REEL>" || m_lecteur.getSymbole() == "<CHAINE>") {
     fact = m_table.chercheAjoute(m_lecteur.getSymbole()); // on ajoute la variable ou l'entier à la table
     m_lecteur.avancer();
   } else if (m_lecteur.getSymbole() == "-") { // - <facteur>
@@ -125,8 +125,7 @@ Noeud* Interpreteur::facteur() {
     fact = new NoeudOperateurBinaire(Symbole("-"), m_table.chercheAjoute(Symbole("0")), facteur());
   } else if (m_lecteur.getSymbole() == "not") { // non <facteur>
     m_lecteur.avancer();
-    // on représente le moins unaire (- facteur) par une soustractin binaire (0 - facteur)
-    fact = new NoeudOperateurBinaire(Symbole("not"), facteur(), nullptr);
+    fact = new NoeudOperateurBinaire(Symbole("not"), m_table.chercheAjoute(Symbole("0")), facteur());
   } else if (m_lecteur.getSymbole() == "(") { // expression parenthésée
     m_lecteur.avancer();
     fact = expression();
