@@ -45,13 +45,37 @@ void Lecteur::sauterSeparateurs() {
 string Lecteur::motSuivant() {
   string s;
   s = "";
-  if (isdigit(m_lecteurCar.getCaractere()))
+  
+  //ENTIER
+  if (isdigit(m_lecteurCar.getCaractere())){
     // c'est le début d'un entier
     do {
       s = s + m_lecteurCar.getCaractere();
       m_lecteurCar.avancer();
     } while (isdigit(m_lecteurCar.getCaractere()));
-
+    if(m_lecteurCar.getCaractere() == '.'){
+      do {
+        s = s + m_lecteurCar.getCaractere();
+        m_lecteurCar.avancer();
+      } while (isdigit(m_lecteurCar.getCaractere()));
+    }
+  }
+ 
+  //POINT OU REEL
+  else if(m_lecteurCar.getCaractere() == '.'){
+    s = s + m_lecteurCar.getCaractere();
+    m_lecteurCar.avancer();
+    if(isalpha(m_lecteurCar.getCaractere())){
+      s = s + m_lecteurCar.getCaractere();
+      m_lecteurCar.avancer();
+      while (isalpha(m_lecteurCar.getCaractere()) || isdigit(m_lecteurCar.getCaractere())){
+        s = s + m_lecteurCar.getCaractere();
+        m_lecteurCar.avancer();
+      }
+    }
+  }
+  
+  
   else if (isalpha(m_lecteurCar.getCaractere()))
     // c'est le début d'un mot
     do {
@@ -60,6 +84,9 @@ string Lecteur::motSuivant() {
     } while (isalpha(m_lecteurCar.getCaractere()) ||
             isdigit(m_lecteurCar.getCaractere()) ||
             m_lecteurCar.getCaractere() == '_');
+  
+  
+  
   else if (m_lecteurCar.getCaractere() == '"') {
     // c'est le début d'une chaîne
     do {
@@ -72,7 +99,10 @@ string Lecteur::motSuivant() {
       s = s + m_lecteurCar.getCaractere();
       m_lecteurCar.avancer();
     }
-  } else if (m_lecteurCar.getCaractere() == '=' || m_lecteurCar.getCaractere() == '!' ||
+  }
+  
+  
+  else if (m_lecteurCar.getCaractere() == '=' || m_lecteurCar.getCaractere() == '!' ||
           m_lecteurCar.getCaractere() == '<' || m_lecteurCar.getCaractere() == '>') {
     s = s + m_lecteurCar.getCaractere();
     m_lecteurCar.avancer();
@@ -81,7 +111,9 @@ string Lecteur::motSuivant() {
       s = s + m_lecteurCar.getCaractere();
       m_lecteurCar.avancer();
     }
-  } else if (m_lecteurCar.getCaractere() == '+') {
+  }
+  
+  else if (m_lecteurCar.getCaractere() == '+') {
     s = s + m_lecteurCar.getCaractere();
     m_lecteurCar.avancer();
     if (m_lecteurCar.getCaractere() == '+') {
@@ -89,7 +121,9 @@ string Lecteur::motSuivant() {
       s = s + m_lecteurCar.getCaractere();
       m_lecteurCar.avancer();
     }
-  } else if (m_lecteurCar.getCaractere() == '-') {
+  }
+  
+  else if (m_lecteurCar.getCaractere() == '-') {
     s = s + m_lecteurCar.getCaractere();
     m_lecteurCar.avancer();
     if (m_lecteurCar.getCaractere() == '-') {
@@ -97,7 +131,9 @@ string Lecteur::motSuivant() {
       s = s + m_lecteurCar.getCaractere();
       m_lecteurCar.avancer();
     }
-  } else if (m_lecteurCar.getCaractere() != EOF)
+  }
+  
+  else if (m_lecteurCar.getCaractere() != EOF)
     // c'est un caractere spécial
   {
     s = m_lecteurCar.getCaractere();
