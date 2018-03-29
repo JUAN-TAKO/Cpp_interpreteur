@@ -12,7 +12,10 @@
       <itemPath>SymboleValue.h</itemPath>
       <itemPath>TableSymboles.h</itemPath>
     </logicalFolder>
-    <logicalFolder name="f1" displayName="Resource Files" projectFiles="true">
+    <logicalFolder name="f1"
+                   displayName="Resource Files"
+                   projectFiles="true"
+                   kind="ROOT">
       <itemPath>motsCles.txt</itemPath>
       <itemPath>programme.txt</itemPath>
     </logicalFolder>
