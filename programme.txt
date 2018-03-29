@@ -9,7 +9,7 @@ def main()
   for(i = 0; i < a; i = i + 1)
     if(i % 2 == 0)
       div2 = div2 + 1;
-    elseif(i % 3)
+    elseif(i % 3 == 0)
       div3 = div3 + 1;
     else
       divn = divn + 1;

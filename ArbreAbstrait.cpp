@@ -84,28 +84,18 @@ NoeudInstSiRiche::NoeudInstSiRiche(Noeud* condition, Noeud* sequence)
 }
 
 int NoeudInstSiRiche::executer() {
-    for(unsigned int i(0); i < m_conditions.size(); i++){
-      if(m_conditions[i]->executer()){
-        m_sequences[i]->executer();
-        state = true;
-        std::cout << "ok ";
-        break;
-      }
-    }
-    std::cout << m_sequences.size() << " " << m_conditions.size() << " " << state << std::endl;
-    if(!state){
-      m_sequences.back()->executer();
-    }
+    unsigned int i;
+    for(i = 0; i < m_conditions.size() && !m_conditions[i]->executer(); i++);
+    if(i < m_conditions.size() || m_conditions.size() < m_sequences.size())
+      m_sequences[i]->executer();
     return 0;
 }
 
 void NoeudInstSiRiche::ajoute(Noeud* instruction){
-    if(state){
+    if(state)
         m_sequences.push_back(instruction);
-    }
-    else{
+    else
         m_conditions.push_back(instruction);
-    }
     state = !state;
 }
 ////////////////////////////////////////////////////////////////////////////////
