@@ -52,6 +52,10 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <compileType>
+        <ccTool>
+          <standard>11</standard>
+          <warningLevel>2</warningLevel>
+        </ccTool>
       </compileType>
       <item path="ArbreAbstrait.cpp" ex="false" tool="1" flavor2="0">
       </item>

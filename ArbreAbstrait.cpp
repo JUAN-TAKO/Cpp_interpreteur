@@ -77,15 +77,37 @@ int NoeudOperateurBinaire::executer() {
 // NoeudInstSi
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstSi::NoeudInstSi(Noeud* condition, Noeud* sequence)
-: m_condition(condition), m_sequence(sequence) {
+NoeudInstSiRiche::NoeudInstSiRiche(Noeud* condition, Noeud* sequence)
+: state(true){
+  m_conditions.push_back(condition);
+  m_sequences.push_back(sequence);
 }
 
-int NoeudInstSi::executer() {
-  if (m_condition->executer()) m_sequence->executer();
-  return 0; // La valeur renvoyée ne représente rien !
+int NoeudInstSiRiche::executer() {
+    for(unsigned int i(0); i < m_conditions.size(); i++){
+      if(m_conditions[i]->executer()){
+        m_sequences[i]->executer();
+        state = true;
+        std::cout << "ok ";
+        break;
+      }
+    }
+    std::cout << m_sequences.size() << " " << m_conditions.size() << " " << state << std::endl;
+    if(!state){
+      m_sequences.back()->executer();
+    }
+    return 0;
 }
 
+void NoeudInstSiRiche::ajoute(Noeud* instruction){
+    if(state){
+        m_sequences.push_back(instruction);
+    }
+    else{
+        m_conditions.push_back(instruction);
+    }
+    state = !state;
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstRepeter
 ////////////////////////////////////////////////////////////////////////////////

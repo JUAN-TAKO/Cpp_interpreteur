@@ -57,7 +57,8 @@ Noeud* Interpreteur::seqInst() {
   do {
     sequence->ajoute(inst());
   } while (m_lecteur.getSymbole() == "<VARIABLE>" || m_lecteur.getSymbole() == "if" ||
-           m_lecteur.getSymbole() == "while"      || m_lecteur.getSymbole() == "for"  );
+           m_lecteur.getSymbole() == "while"      || m_lecteur.getSymbole() == "repeat"||
+           m_lecteur.getSymbole() == "for");
   // Tant que le symbole courant est un début possible d'instruction...
   // Il faut compléter cette condition chaque fois qu'on rajoute une nouvelle instruction
   return sequence;
@@ -71,13 +72,16 @@ Noeud* Interpreteur::inst() {
     return affect;
   }
   else if (m_lecteur.getSymbole() == "if")
-    return instSi();
+    return instSiRiche();
   else if (m_lecteur.getSymbole() == "for")
     return instPour();
   else if (m_lecteur.getSymbole() == "while")
     return instTantQue();
+  else if (m_lecteur.getSymbole() == "repeat")
+    return instRepeter();
   // Compléter les alternatives chaque fois qu'on rajoute une nouvelle instruction
   else erreur("Instruction incorrecte");
+  return nullptr;
 }
 
 Noeud* Interpreteur::affectation() {
@@ -132,17 +136,6 @@ Noeud* Interpreteur::facteur() {
   return fact;
 }
 
-Noeud* Interpreteur::instSi() {
-  // <instSi> ::= si ( <expression> ) <seqInst> finsi
-  testerEtAvancer("if");
-  testerEtAvancer("(");
-  Noeud* condition = expression(); // On mémorise la condition
-  testerEtAvancer(")");
-  Noeud* sequence = seqInst();     // On mémorise la séquence d'instruction
-  testerEtAvancer("end");
-  return new NoeudInstSi(condition, sequence); // Et on renvoie un noeud Instruction Si
-}
-
 Noeud*  Interpreteur::instPour(){
     testerEtAvancer("for");
     testerEtAvancer("(");
@@ -167,3 +160,38 @@ Noeud*  Interpreteur::instTantQue(){
     return new NoeudInstTantQue(cond,seq);
 }
 
+Noeud*  Interpreteur::instRepeter(){
+    testerEtAvancer("repeat");
+    Noeud* seq = seqInst();
+    testerEtAvancer("until");
+    testerEtAvancer("(");
+    Noeud* cond = expression();
+    testerEtAvancer(")");
+    return new NoeudInstTantQue(cond,seq);
+}
+
+Noeud* Interpreteur::instSiRiche(){
+    testerEtAvancer("if");
+    testerEtAvancer("(");
+    Noeud* cond = expression();
+    testerEtAvancer(")");
+    Noeud* seq = seqInst();
+    Noeud* si = new NoeudInstSiRiche(cond, seq);
+    while(m_lecteur.getSymbole() == "elseif"){
+        testerEtAvancer("elseif");
+        testerEtAvancer("(");
+        cond = expression();
+        testerEtAvancer(")");
+        seq = seqInst();
+        si->ajoute(seq);
+        si->ajoute(cond);
+    }
+    if(m_lecteur.getSymbole() == "else"){
+        testerEtAvancer("else");
+        seq = seqInst();
+        si->ajoute(seq);
+    }
+    testerEtAvancer("end");
+    
+    return si;
+}
