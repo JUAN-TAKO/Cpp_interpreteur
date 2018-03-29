@@ -16,6 +16,8 @@
                    displayName="Resource Files"
                    projectFiles="true"
                    kind="ROOT">
+      <itemPath>motsCles.txt</itemPath>
+      <itemPath>programme.txt</itemPath>
     </logicalFolder>
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
@@ -28,8 +30,6 @@
       <itemPath>SymboleValue.cpp</itemPath>
       <itemPath>TableSymboles.cpp</itemPath>
       <itemPath>main.cpp</itemPath>
-      <itemPath>motsCles.txt</itemPath>
-      <itemPath>programme.txt</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
