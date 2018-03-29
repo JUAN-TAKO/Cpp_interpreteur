@@ -87,7 +87,7 @@ class NoeudInstSiRiche : public Noeud {
 class NoeudInstRepeter : public Noeud{
 public:
     NoeudInstRepeter(Noeud* sequence, Noeud* condition);
-    ~NoeudInstSi() {}
+    ~NoeudInstRepeter() {}
     int executer();
 private:
     Noeud*  m_sequence;

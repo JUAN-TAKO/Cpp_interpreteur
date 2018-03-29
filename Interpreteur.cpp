@@ -71,13 +71,14 @@ Noeud* Interpreteur::inst() {
     return affect;
   }
   else if (m_lecteur.getSymbole() == "if")
-    return instSi();
+    return instSiRiche();
   else if (m_lecteur.getSymbole() == "for")
     return instPour();
   else if (m_lecteur.getSymbole() == "while")
     return instTantQue();
   // Compléter les alternatives chaque fois qu'on rajoute une nouvelle instruction
   else erreur("Instruction incorrecte");
+  return nullptr;
 }
 
 Noeud* Interpreteur::affectation() {
@@ -130,17 +131,6 @@ Noeud* Interpreteur::facteur() {
   } else
     erreur("Facteur incorrect");
   return fact;
-}
-
-Noeud* Interpreteur::instSi() {
-  // <instSi> ::= si ( <expression> ) <seqInst> finsi
-  testerEtAvancer("if");
-  testerEtAvancer("(");
-  Noeud* condition = expression(); // On mémorise la condition
-  testerEtAvancer(")");
-  Noeud* sequence = seqInst();     // On mémorise la séquence d'instruction
-  testerEtAvancer("end");
-  return new NoeudInstSi(condition, sequence); // Et on renvoie un noeud Instruction Si
 }
 
 Noeud*  Interpreteur::instPour(){
@@ -200,5 +190,5 @@ Noeud* Interpreteur::instSiRiche(){
     }
     testerEtAvancer("end");
     
-    
+    return si;
 }

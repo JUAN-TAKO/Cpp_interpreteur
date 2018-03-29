@@ -78,16 +78,25 @@ int NoeudOperateurBinaire::executer() {
 ////////////////////////////////////////////////////////////////////////////////
 
 NoeudInstSiRiche::NoeudInstSiRiche(Noeud* condition, Noeud* sequence)
-: m_conditions(condition)
-, m_sequences(sequence)
-, state(false){
-    
+: state(true){
+  m_conditions.push_back(condition);
+  m_sequences.push_back(sequence);
 }
 
 int NoeudInstSiRiche::executer() {
-    if(){
-        
+    for(unsigned int i(0); i < m_conditions.size(); i++){
+      if(m_conditions[i]->executer()){
+        m_sequences[i]->executer();
+        state = true;
+        std::cout << "ok ";
+        break;
+      }
     }
+    std::cout << m_sequences.size() << " " << m_conditions.size() << " " << state << std::endl;
+    if(!state){
+      m_sequences.back()->executer();
+    }
+    return 0;
 }
 
 void NoeudInstSiRiche::ajoute(Noeud* instruction){
