@@ -13,6 +13,7 @@ Symbole(s.getChaine()) {
   }else if(s == "<CHAINE>"){
       m_defini = true;
       m_valeur = s.getChaine();
+      m_valeur = ((std::string)m_valeur).substr(1, ((std::string)m_valeur).size() - 2);
   }else{
     m_defini = false;
   }

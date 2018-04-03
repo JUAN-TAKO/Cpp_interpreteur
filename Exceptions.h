@@ -32,7 +32,7 @@ public:
     const char * what() const throw() {
         return m_message;
     }
-private :
+private:
     const char* m_message;
 };
 
@@ -54,9 +54,12 @@ public:
 
 class OperationInterditeException : public InterpreteurException {
 public:
+    OperationInterditeException(const char* message = nullptr) : m_message(message){}
     const char * what() const throw() {
-        return "Operation Interdite sur un noeud";
+        return m_message;
     }
+private:
+const char* m_message;
 };
 
 #endif	/* EXCEPTIONS_H */

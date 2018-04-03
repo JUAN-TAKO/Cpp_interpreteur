@@ -35,8 +35,12 @@ private:
                            //   <opBinaire> ::= + | - | *  | / | < | > | <= | >= | == | != | et | ou
     Noeud*  instPour();
     Noeud*  instTantQue(); // <instTantQue> ::= 
+    Noeud*  instDoWhile();
+    Noeud*  instUntil();
     Noeud*  instRepeter();
     Noeud*  instSiRiche();
+    Noeud*  instPrint();
+    //Noeud*  instScan();
     // outils pour simplifier l'analyse syntaxique
     void tester (const string & symboleAttendu) const throw (SyntaxeException);   // Si symbole courant != symboleAttendu, on lève une exception
     void testerEtAvancer(const string & symboleAttendu) throw (SyntaxeException); // Si symbole courant != symboleAttendu, on lève une exception, sinon on avance

@@ -2,6 +2,7 @@ def
 main
 end
 for
+in
 if
 else
 elseif
@@ -11,6 +12,8 @@ until
 scan
 print
 ;
+:
+|
 ,
 =
 (

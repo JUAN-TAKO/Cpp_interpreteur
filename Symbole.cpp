@@ -22,6 +22,9 @@ Symbole::Symbole(const string & s) : m_chaine(s) {
           this->m_categorie = INDEFINI;
       }
   }
+  else if (s.size() >= 2 && s[0] == '"' && s[s.size() - 1] == '"')
+    this->m_categorie = CHAINE;
+  else if (isMotCle(s)) this->m_categorie = MOTCLE;
   else if (s[0] == '.'){
       this->m_categorie = REEL;
       unsigned int i;
@@ -30,18 +33,18 @@ Symbole::Symbole(const string & s) : m_chaine(s) {
           this->m_categorie = INDEFINI;
       }
   }
-  else if (s.size() >= 2 && s[0] == '"' && s[s.size() - 1] == '"') this->m_categorie = CHAINE;
-  else if (isMotCle(s)) this->m_categorie = MOTCLE;
   else if (isalpha(s[0])) this->m_categorie = VARIABLE;
   else this->m_categorie = INDEFINI;
+  
+
 }
 
 bool Symbole::operator==(const string & ch) const {
   return this->m_chaine == ch ||
           (this->m_categorie == VARIABLE && (ch == "<VARIABLE>" || ch == "<variable>")) ||
-          (this->m_categorie == ENTIER && (ch == "<ENTIER>" || ch == "<entier>")) ||
-          (this->m_categorie == REEL && (ch == "<REEL>" || ch == "<reel>")) ||
-          (this->m_categorie == CHAINE && (ch == "<CHAINE>" || ch == "<chaine>")) ||
+          (this->m_categorie == ENTIER && (ch == "<ENTIER>" || ch == "<entier>" || ch == "<LITTERAL>" || ch == "<litteral>" || ch == "<NUMBER>" || ch == "<number>")) ||
+          (this->m_categorie == REEL && (ch == "<REEL>" || ch == "<reel>" || ch == "<LITTERAL>" || ch == "<litteral>" || ch == "<NUMBER>" || ch == "<number>")) ||
+          (this->m_categorie == CHAINE && (ch == "<CHAINE>" || ch == "<chaine>" || ch == "<LITTERAL>" || ch == "<litteral>")) || 
           (this->m_categorie == INDEFINI && (ch == "<INDEFINI>" || ch == "<indefini>")) ||
           (this->m_categorie == FINDEFICHIER && (ch == "<FINDEFICHIER>" || ch == "<findefichier>"));
 }

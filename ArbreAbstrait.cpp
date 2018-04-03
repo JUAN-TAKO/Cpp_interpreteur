@@ -31,7 +31,7 @@ NoeudAffectation::NoeudAffectation(Noeud* variable, Noeud* expression)
 }
 
 Value NoeudAffectation::executer() {
-  int valeur = m_expression->executer(); // On exécute (évalue) l'expression
+  Value valeur = m_expression->executer(); // On exécute (évalue) l'expression
   ((SymboleValue*) m_variable)->setValeur(valeur); // On affecte la variable
   return 0; // La valeur renvoyée ne représente rien !
 }
@@ -48,6 +48,7 @@ Value NoeudOperateurBinaire::executer() {
   Value og, od, valeur;
   if (m_operandeGauche != nullptr) og = m_operandeGauche->executer(); // On évalue l'opérande gauche
   if (m_operandeDroit != nullptr) od = m_operandeDroit->executer(); // On évalue l'opérande droit
+
   // Et on combine les deux opérandes en fonctions de l'opérateur
   if (this->m_operateur == "+") valeur = (og + od);
   else if (this->m_operateur == "-") valeur = (og - od);
@@ -113,12 +114,25 @@ Value NoeudInstRepeter::executer(){
     while(!m_condition->executer());
     return 0;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// NoeudInstUntil
+////////////////////////////////////////////////////////////////////////////////
+
+NoeudInstUntil::NoeudInstUntil(Noeud* sequence, Noeud* condition)
+: m_sequence(sequence), m_condition(condition){
+}
+
+Value NoeudInstUntil::executer(){
+  while(!m_condition->executer()) m_sequence->executer();
+  return 0;
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstTantQue
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstTantQue::NoeudInstTantQue(Noeud* condition, Noeud* sequence) 
-: m_condition(condition), m_sequence(sequence) {
+NoeudInstTantQue::NoeudInstTantQue(Noeud* sequence, Noeud* condition) 
+: m_sequence(sequence), m_condition(condition) {
 }
 
 Value NoeudInstTantQue::executer() {
@@ -126,6 +140,20 @@ Value NoeudInstTantQue::executer() {
   return 0;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// NoeudInstDoWhile
+////////////////////////////////////////////////////////////////////////////////
+
+NoeudInstDoWhile::NoeudInstDoWhile(Noeud* condition, Noeud* sequence)
+: m_sequence(sequence), m_condition(condition){
+}
+
+Value NoeudInstDoWhile::executer(){
+  do{
+    m_sequence->executer();
+  }while(m_condition->executer());
+  return 0;
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstPour
 ////////////////////////////////////////////////////////////////////////////////
@@ -141,3 +169,36 @@ Value NoeudInstPour::executer() {
   }
   return 0;
 }
+////////////////////////////////////////////////////////////////////////////////
+// NoeudInstPrint
+////////////////////////////////////////////////////////////////////////////////
+
+NoeudInstPrint::NoeudInstPrint(){}
+
+void NoeudInstPrint::ajoute(Noeud* val){
+  m_vals.push_back(val);
+}
+
+Value NoeudInstPrint::executer(){
+  for(auto val : m_vals){
+    std::cout << val->executer();
+  }
+  return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// NoeudInstScan
+////////////////////////////////////////////////////////////////////////////////
+/*
+NoeudInstScan::NoeudInstScan(){}
+
+void NoeudInstScan::ajouter(Noeud* var){
+  m_vars.push_back(var);
+}
+
+Value NoeudInstScan::executer(){
+  for(auto var : m_vars){
+    Value v;
+    std::cin >> v;
+  }
+}*/

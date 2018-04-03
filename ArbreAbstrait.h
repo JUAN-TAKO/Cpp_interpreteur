@@ -19,7 +19,7 @@ class Noeud {
 // Remarque : la classe ne contient aucun constructeur
   public:
     virtual Value  executer() =0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
-    virtual void ajoute(Noeud* instruction) { throw OperationInterditeException(); }
+    virtual void ajoute(Noeud* instruction) { throw OperationInterditeException("Ajout non supporté"); }
     virtual ~Noeud() {} // Présence d'un destructeur virtuel conseillée dans les classes abstraites
 };
 
@@ -98,14 +98,14 @@ class NoeudInstTantQue : public Noeud {
 // Classe pour représenter un noeud "instruction ta,t que"
 //  et ses 2 fils : la condition du tant que et la séquence d'instruction associée
   public:
-    NoeudInstTantQue(Noeud* condition, Noeud* sequence);
+    NoeudInstTantQue(Noeud* sequence, Noeud* condition);
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstTantQue() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
 
   private:
-    Noeud*  m_condition;
     Noeud*  m_sequence;
+    Noeud*  m_condition;
 };
 
 class NoeudInstPour : public Noeud {
@@ -123,5 +123,43 @@ class NoeudInstPour : public Noeud {
     Noeud*  m_iteration;
     Noeud*  m_sequence;
 };
+
+class NoeudInstDoWhile : public Noeud{
+public:
+    NoeudInstDoWhile(Noeud* sequence, Noeud* cond);
+    ~NoeudInstDoWhile() {} // A cause du destructeur virtuel de la classe Noeud
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+private:
+    Noeud* m_sequence;
+    Noeud* m_condition;
+};
+
+class NoeudInstUntil : public Noeud{
+public:
+    NoeudInstUntil(Noeud* sequence, Noeud* cond);
+    ~NoeudInstUntil() {} // A cause du destructeur virtuel de la classe Noeud
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+private:
+    Noeud* m_sequence;
+    Noeud* m_condition;
+};
+class NoeudInstPrint : public Noeud{
+public:
+    NoeudInstPrint();
+    ~NoeudInstPrint() {} // A cause du destructeur virtuel de la classe Noeud
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    void ajoute(Noeud* val);
+private:
+    std::vector<Noeud*> m_vals;
+};/*
+class NoeudInstScan{
+public:
+    NoeudInstScan();
+    ~NoeudInstScan() {} // A cause du destructeur virtuel de la classe Noeud
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    void ajouter(Noeud* var);
+private:
+    std::vector<Noeud*> m_vars;
+};*/
 
 #endif /* ARBREABSTRAIT_H */

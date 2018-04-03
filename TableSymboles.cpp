@@ -3,7 +3,7 @@
 TableSymboles::TableSymboles() : m_table() {
 }
 
-SymboleValue * TableSymboles::chercheAjoute(const Symbole & s)
+SymboleValue* TableSymboles::chercheAjoute(const Symbole & s)
 // si s est identique à un symbole valué déjà présent dans la table,
 // on renvoie un pointeur sur ce symbole valué.
 // Sinon, on insère un nouveau symbole valué correspondant à s
@@ -12,7 +12,6 @@ SymboleValue * TableSymboles::chercheAjoute(const Symbole & s)
   vector<SymboleValue*>::iterator i;
   i = m_table.begin();
   while (i < m_table.end() && (**i).getChaine() < s.getChaine()) i++;
-  std::cout << "TEST : " << s << std::endl;
   if (i == m_table.end() || (**i).getChaine() != s.getChaine()) // si pas trouvé...
     i = m_table.insert(i, new SymboleValue(s));
   return *i;

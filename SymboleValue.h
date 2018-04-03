@@ -6,6 +6,7 @@
 #include "Symbole.h"
 #include "ArbreAbstrait.h"
 #include <math.h>
+#include <float.h>
 class Value{
 private:
     struct S{
@@ -55,7 +56,7 @@ public:
             return (int)data.vf;
         }
         else{
-            throw OperationInterditeException();
+            throw OperationInterditeException("Invalid conversion from string to int");
         }
     }
     operator float() const{
@@ -66,7 +67,7 @@ public:
             return (float)data.vi;
         }
         else{
-            throw OperationInterditeException();
+            throw OperationInterditeException("Invalid conversion from string to float");
         }
     }
     operator std::string() const{
@@ -86,27 +87,39 @@ public:
             return (bool)data.vi;
         }
         else{
-            throw OperationInterditeException();
+            throw OperationInterditeException("Invalid conversion to bool");
         }
     }
-    int operator=(int v){
+    const Value& operator=(int v){
         type = 0;
         data.vi = v;
         data.vs = "";
-        return data.vi;
+        return *this;
     }
-    float operator=(float v){
+    const Value& operator=(float v){
         type = 1;
         data.vf = v;
         data.vs = "";
-        return data.vf;
+        return *this;
     }
-    const std::string& operator=(string v){
+    const Value& operator=(string v){
         type = 2;
         data.vs = v;
-        return data.vs;
+        return *this;
+    }
+    const Value& operator=(const Value& v){
+        type = v.type;
+        if(type == 0){
+            data.vi = v.data.vi;
+        }else if(type == 1){
+            data.vf = v.data.vf;
+        }else{
+            data.vs = v.data.vs;
+        }
+        return *this;
     }
     friend Value operator+(const Value& v1, const Value& v2){
+
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0: // int int
@@ -149,7 +162,7 @@ public:
                 return Value((float)v1.data.vi - v2.data.vf);
                 break;
             case 2: // int string
-                throw OperationInterditeException();
+                throw OperationInterditeException("Invalid operation - on string");
                 break;
             case 3: // float int
                 return Value(v1.data.vf - (float)v2.data.vi);
@@ -158,7 +171,7 @@ public:
                 return Value(v1.data.vf - v2.data.vf);
                 break;
             default:
-                throw OperationInterditeException();
+                throw OperationInterditeException("Invalid operation - on string");
                 break;
         }
     }
@@ -172,7 +185,7 @@ public:
                 return Value((float)v1.data.vi * v2.data.vf);
                 break;
             case 2: // int string
-                throw OperationInterditeException();
+                throw OperationInterditeException("Invalid operation * on string");
                 break;
             case 3: // float int
                 return Value(v1.data.vf * (float)v2.data.vi);
@@ -181,7 +194,7 @@ public:
                 return Value(v1.data.vf * v2.data.vf);
                 break;
             default:
-                throw OperationInterditeException();
+                throw OperationInterditeException("Invalid operation * on string");
                 break;
         }
     }
@@ -195,7 +208,7 @@ public:
                 return Value(v1.data.vi / v2.data.vf);
                 break;
             case 2: // int string
-                throw OperationInterditeException();
+                throw OperationInterditeException("Invalid operation / on string");
                 break;
             case 3: // float int
                 return Value(v1.data.vf / v2.data.vi);
@@ -204,7 +217,7 @@ public:
                 return Value(v1.data.vf / v2.data.vf);
                 break;
             default:
-                throw OperationInterditeException();
+                throw OperationInterditeException("Invalid operation / on string");
                 break;
         }
     }
@@ -215,105 +228,221 @@ public:
                 return Value(v1.data.vi % v2.data.vi);
                 break;
             case 1: // int float
-                return Value(fmod((float)v1.data.vi, v2.data.vf));
+                return Value((float)fmod((float)v1.data.vi, v2.data.vf));
                 break;
             case 2: // int string
-                throw OperationInterditeException();
+                throw OperationInterditeException("Invalid operation % on string");
                 break;
             case 3: // float int
-                return Value(fmod(v1.data.vf, (float)v2.data.vi));
+                return Value((float)fmod(v1.data.vf, (float)v2.data.vi));
                 break;
             case 4: // float float
-                return Value(fmod(v1.data.vf, v2.data.vf));
+                return Value((float)fmod(v1.data.vf, v2.data.vf));
                 break;
             default:
-                throw OperationInterditeException();
+                throw OperationInterditeException("Invalid operation % on string");
                 break;
         }
+        return 0;
     }
     friend Value operator==(const Value& v1, const Value& v2){
-        if(v1.type == v2.type){
-            if(v1.type == 0){
-                return Value((int)(v1.data.vi == v2.data.vi));
-            }else if(v1.type == 1){
-                return Value((int)(v1.data.vf == v2.data.vf));
-            }else{
-                return Value((int)(v1.data.vs == v2.data.vs));
-            }
+        int types = v1.type*3 + v2.type;
+        switch(types){
+            case 0:
+                return (int)(v1.data.vi == v2.data.vi); 
+                break;
+            case 1:
+                return (int)(fabs(v1.data.vi - v2.data.vf) <= FLT_EPSILON);
+                break;
+            case 2:
+                return 0;
+                break;
+            case 3:
+                return (int)(fabs(v1.data.vf - v2.data.vi) <= FLT_EPSILON);
+                break;
+            case 4:
+                return (int)(fabs(v1.data.vf - v2.data.vf) <= FLT_EPSILON);
+                break;
+            case 5:
+                return 0;
+                break;
+            case 6:
+                return 0;
+                break;
+            case 7:
+                return 0;
+                break;
+            case 8:
+                return (int)(v1.data.vs == v2.data.vs);
+                break;
         }
-        else{
-            return 0;
-        }
+        return 0;
     }
     friend Value operator!=(const Value& v1, const Value& v2){
-        if(v1.type == v2.type){
-            if(v1.type == 0){
-                return Value((int)(v1.data.vi != v2.data.vi));
-            }else if(v1.type == 1){
-                return Value((int)(v1.data.vf != v2.data.vf));
-            }else{
-                return Value((int)(v1.data.vs != v2.data.vs));
-            }
+        int types = v1.type*3 + v2.type;
+        switch(types){
+            case 0:
+                return (int)(v1.data.vi != v2.data.vi); 
+                break;
+            case 1:
+                return (int)(fabs(v1.data.vi - v2.data.vf) > FLT_EPSILON);
+                break;
+            case 2:
+                return 1;
+                break;
+            case 3:
+                return (int)(fabs(v1.data.vf - v2.data.vi) > FLT_EPSILON);
+                break;
+            case 4:
+                return (int)(fabs(v1.data.vf - v2.data.vf) > FLT_EPSILON);
+                break;
+            case 5:
+                return 1;
+                break;
+            case 6:
+                return 1;
+                break;
+            case 7:
+                return 1;
+                break;
+            case 8:
+                return (int)(v1.data.vs != v2.data.vs);
+                break;
         }
-        else{
-            return 1;
-        }
+        return 0;
     }
     friend Value operator<=(const Value& v1, const Value& v2){
-        if(v1.type == v2.type){
-            if(v1.type == 0){
-                return Value((int)(v1.data.vi <= v2.data.vi));
-            }else if(v1.type == 1){
-                return Value((int)(v1.data.vf <= v2.data.vf));
-            }else{
-                return Value((int)(v1.data.vs <= v2.data.vs));
-            }
+        
+        int types = v1.type*3 + v2.type;
+        switch(types){
+            case 0:
+                return (int)(v1.data.vi <= v2.data.vi); 
+                break;
+            case 1:
+                return (int)(v1.data.vi <= v2.data.vf);
+                break;
+            case 2:
+                throw OperationInterditeException("Invalid comparison int <= string");
+                break;
+            case 3:
+                return (int)(v1.data.vf <= v2.data.vi);
+                break;
+            case 4:
+                return (int)(v1.data.vf <= v2.data.vf);
+                break;
+            case 5:
+                throw OperationInterditeException("Invalid comparison float <= string");
+                break;
+            case 6:
+                throw OperationInterditeException("Invalid comparison string <= int");
+                break;
+            case 7:
+                throw OperationInterditeException("Invalid comparison string <= float");
+                break;
+            case 8:
+                return (int)(v1.data.vs <= v2.data.vs);
+                break;
         }
-        else{
-            throw OperationInterditeException();
-        }
+        return 0;
     }
     friend Value operator>=(const Value& v1, const Value& v2){
-        if(v1.type == v2.type){
-            if(v1.type == 0){
-                return Value((int)(v1.data.vi >= v2.data.vi));
-            }else if(v1.type == 1){
-                return Value((int)(v1.data.vf >= v2.data.vf));
-            }else{
-                return Value((int)(v1.data.vs >= v2.data.vs));
-            }
+        int types = v1.type*3 + v2.type;
+        switch(types){
+            case 0:
+                return (int)(v1.data.vi >= v2.data.vi); 
+                break;
+            case 1:
+                return (int)(v1.data.vi >= v2.data.vf);
+                break;
+            case 2:
+                throw OperationInterditeException("Invalid comparison float >= string");
+                break;
+            case 3:
+                return (int)(v1.data.vf >= v2.data.vi);
+                break;
+            case 4:
+                return (int)(v1.data.vf >= v2.data.vf);
+                break;
+            case 5:
+                throw OperationInterditeException("Invalid comparison int >= string");
+                break;
+            case 6:
+                throw OperationInterditeException("Invalid comparison string >= int");
+                break;
+            case 7:
+                throw OperationInterditeException("Invalid comparison string >= float");
+                break;
+            case 8:
+                return (int)(v1.data.vs >= v2.data.vs);
+                break;
         }
-        else{
-            throw OperationInterditeException();
-        }
+        return 0;
     }
     friend Value operator<(const Value& v1, const Value& v2){
-        if(v1.type == v2.type){
-            if(v1.type == 0){
-                return Value((int)(v1.data.vi < v2.data.vi));
-            }else if(v1.type == 1){
-                return Value((int)(v1.data.vf < v2.data.vf));
-            }else{
-                return Value((int)(v1.data.vs < v2.data.vs));
-            }
+        int types = v1.type*3 + v2.type;
+        switch(types){
+            case 0:
+                return (int)(v1.data.vi < v2.data.vi); 
+                break;
+            case 1:
+                return (int)(v1.data.vi < v2.data.vf);
+                break;
+            case 2:
+                throw OperationInterditeException("Invalid comparison int < string");
+                break;
+            case 3:
+                return (int)(v1.data.vf < v2.data.vi);
+                break;
+            case 4:
+                return (int)(v1.data.vf < v2.data.vf);
+                break;
+            case 5:
+                throw OperationInterditeException("Invalid comparison float < string");
+                break;
+            case 6:
+                throw OperationInterditeException("Invalid comparison string < int");
+                break;
+            case 7:
+                throw OperationInterditeException("Invalid comparison string < float");
+                break;
+            case 8:
+                return (int)(v1.data.vs < v2.data.vs);
+                break;
         }
-        else{
-            throw OperationInterditeException();
-        }
+        return 0;
     }
     friend Value operator>(const Value& v1, const Value& v2){
-        if(v1.type == v2.type){
-            if(v1.type == 0){
-                return Value((int)(v1.data.vi > v2.data.vi));
-            }else if(v1.type == 1){
-                return Value((int)(v1.data.vf > v2.data.vf));
-            }else{
-                return Value((int)(v1.data.vs > v2.data.vs));
-            }
+        int types = v1.type*3 + v2.type;
+        switch(types){
+            case 0:
+                return (int)(v1.data.vi > v2.data.vi); 
+                break;
+            case 1:
+                return (int)(v1.data.vi > v2.data.vf);
+                break;
+            case 2:
+                throw OperationInterditeException("Invalid comparison int > string");
+                break;
+            case 3:
+                return (int)(v1.data.vf > v2.data.vi);
+                break;
+            case 4:
+                return (int)(v1.data.vf > v2.data.vf);
+                break;
+            case 5:
+                throw OperationInterditeException("Invalid comparison float > string");
+                break;
+            case 6:
+                throw OperationInterditeException("Invalid comparison string > int");
+                break;
+            case 7:
+                throw OperationInterditeException("Invalid comparison string > float");
+                break;
+            case 8:
+                return (int)(v1.data.vs > v2.data.vs);
+                break;
         }
-        else{
-            throw OperationInterditeException();
-        }
+        return 0;
     }
     friend std::ostream& operator<<(ostream& out, const Value& v){
         if (v.type == 0) out << (int)v;
