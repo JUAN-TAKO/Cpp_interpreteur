@@ -73,5 +73,10 @@ def main()
     end
   end
   print(" ");
+  for (i = 0; i < 10;)
+    print(2 * i);
+    i = i + .5;
+  end
+  
 end
 # Commentaire Final

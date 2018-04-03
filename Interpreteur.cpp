@@ -157,7 +157,7 @@ Noeud* Interpreteur::instPour(){
         init = m_table.chercheAjoute(Symbole("0"));
       else
         init = affectation();
-
+        
       testerEtAvancer(";");
       
       if(m_lecteur.getSymbole() == ";")
@@ -183,7 +183,7 @@ Noeud* Interpreteur::instPour(){
       Noeud* n1 = facteur();
       Noeud* n2 = nullptr;
       if(m_lecteur.getSymbole() == ":"){
-        testerEtAvancer("|");
+        testerEtAvancer(":");
         n2 = facteur();
       }
       else{
@@ -191,7 +191,7 @@ Noeud* Interpreteur::instPour(){
         n1 = m_table.chercheAjoute(Symbole("0"));
       }
       if(m_lecteur.getSymbole() == "|"){
-        testerEtAvancer(":");
+        testerEtAvancer("|");
         tester("<NUMBER>");
         i = m_table.chercheAjoute(m_lecteur.getSymbole());
         m_lecteur.avancer();
@@ -255,10 +255,10 @@ Noeud* Interpreteur::instPrint(){
     Noeud* p = new NoeudInstPrint();
     testerEtAvancer("print");
     testerEtAvancer("(");
-    p->ajoute(facteur());
+    p->ajoute(expression());
     while(m_lecteur.getSymbole() == ","){
       m_lecteur.avancer();
-      p->ajoute(facteur());
+      p->ajoute(expression());
     }
     
     testerEtAvancer(")");
