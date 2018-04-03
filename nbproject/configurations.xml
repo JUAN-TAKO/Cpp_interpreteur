@@ -11,6 +11,7 @@
       <itemPath>Symbole.h</itemPath>
       <itemPath>SymboleValue.h</itemPath>
       <itemPath>TableSymboles.h</itemPath>
+      <itemPath>Variable.h</itemPath>
     </logicalFolder>
     <logicalFolder name="f1" displayName="Resource Files" projectFiles="true">
       <itemPath>motsCles.txt</itemPath>
@@ -82,6 +83,8 @@
       </item>
       <item path="TableSymboles.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="Variable.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="main.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="motsCles.txt" ex="false" tool="3" flavor2="0">
@@ -136,6 +139,8 @@
       <item path="TableSymboles.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="TableSymboles.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Variable.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="main.cpp" ex="false" tool="1" flavor2="0">
       </item>

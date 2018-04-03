@@ -14,7 +14,7 @@ public:
     // on renvoie un pointeur sur ce symbole valué
     // Sinon on insère un nouveau symbole valué correspondant à symbole
     // et on renvoie un pointeur sur le nouveau symbole valué inséré
-
+    SymboleValue* cherche(const Symbole & s);
     inline unsigned int getTaille() const {
         return m_table.size();
     } // Taille de la table des symboles valués

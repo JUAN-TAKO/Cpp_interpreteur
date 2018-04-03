@@ -17,6 +17,16 @@ SymboleValue* TableSymboles::chercheAjoute(const Symbole & s)
   return *i;
 }
 
+SymboleValue* TableSymboles::cherche(const Symbole & s)
+{
+  vector<SymboleValue*>::iterator i;
+  i = m_table.begin();
+  while (i < m_table.end() && (**i).getChaine() < s.getChaine()) i++;
+  if (i == m_table.end() || (**i).getChaine() != s.getChaine()) // si pas trouvé...
+      throw NonDeclareException(s.getChaine());
+  return *i;
+}
+
 ostream & operator<<(ostream & cout, const TableSymboles & ts)
 // affiche ts sur cout
 {

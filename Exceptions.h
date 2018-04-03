@@ -44,6 +44,15 @@ public:
     }
 };
 
+class NonDeclareException : public InterpreteurException {
+public:
+    NonDeclareException(std::string m) : message(m){}
+    const char * what() const throw() {
+        return std::string(message + std::string(" non declare")).c_str();
+    }
+private:
+    std::string message;
+};
 
 class DivParZeroException : public InterpreteurException {
 public:

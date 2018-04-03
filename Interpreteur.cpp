@@ -31,7 +31,7 @@ void Interpreteur::testerEtAvancer(const string & symboleAttendu) throw (Syntaxe
 
 void Interpreteur::erreur(const string & message) const throw (SyntaxeException) {
   // Lève une exception contenant le message et le symbole courant trouvé
-  // Utilisé lorsqu'il y a plusieurs symboles attendus possibles...
+  // Utilisé lorsqu'il y a plusieurs symbNoeudInstPour(init,cond,iter,seq)oles attendus possibles...
   static char messageWhat[256];
   sprintf(messageWhat,
           "Ligne %d, Colonne %d - Erreur de syntaxe - %s - Symbole trouvé : %s",
@@ -41,14 +41,26 @@ void Interpreteur::erreur(const string & message) const throw (SyntaxeException)
 
 Noeud* Interpreteur::programme() {
   // <programme> ::= procedure principale() <seqInst> finproc FIN_FICHIER
-  testerEtAvancer("def");
-  testerEtAvancer("main");
-  testerEtAvancer("(");
-  testerEtAvancer(")");
-  Noeud* sequence = seqInst();
-  testerEtAvancer("end");
-  tester("<FINDEFICHIER>");
-  return sequence;
+    while(m_lecteur.getSymbole() == "def")
+        fonction();
+    tester("<FINDEFICHIER>");
+  return m_table.cherche("main");
+}
+
+
+Noeud* Interpreteur::fonction(){
+    testerEtAvancer("def");
+    SymboleValue v;
+    if(m_lecteur.getSymbole() == "<VARIABLE>"){
+        v = m_table.chercheAjoute(m_lecteur.getSymbole());
+    }
+    testerEtAvancer("(");
+    testerEtAvancer(")");
+    Noeud* sequence = seqInst();
+    testerEtAvancer("end");
+    Noeud* self = new NoeudFonction(sequence);
+    v.setValeur(self);
+    return self;
 }
 
 Noeud* Interpreteur::seqInst() {

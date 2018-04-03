@@ -33,6 +33,8 @@ private:
     Noeud*  expression();  //  <expression> ::= <facteur> { <opBinaire> <facteur> }
     Noeud*  facteur();     //     <facteur> ::= <entier>  |  <variable>  |  - <facteur>  | non <facteur> | ( <expression> )
                            //   <opBinaire> ::= + | - | *  | / | < | > | <= | >= | == | != | et | ou
+    Noeud* fonction();
+    
     Noeud*  instPour();
     Noeud*  instTantQue(); // <instTantQue> ::= 
     Noeud*  instDoWhile();
