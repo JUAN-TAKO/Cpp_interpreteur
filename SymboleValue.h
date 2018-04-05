@@ -48,6 +48,19 @@ public:
     int getType() const{
         return type;
     }
+    
+    void scanI(){
+        type = 0;
+        std::cin >> S.vi;
+    }
+    void scanF(){
+        type = 1;
+        std::cin >> S.vf;
+    }
+    void scanS(){
+        type = 2;
+        std::cin >> S.vs;
+    }   
     operator int() const{
         if(type == 0){
             return data.vi;
