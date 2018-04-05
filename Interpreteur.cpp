@@ -4,7 +4,7 @@
 using namespace std;
 
 Interpreteur::Interpreteur(ifstream & fichier) :
-m_lecteur(fichier), m_table(), m_arbre(nullptr) {
+m_lecteur(fichier), m_arbre(nullptr) {
 }
 
 void Interpreteur::analyse() {
@@ -41,25 +41,37 @@ void Interpreteur::erreur(const string & message) const throw (SyntaxeException)
 
 Noeud* Interpreteur::programme() {
   // <programme> ::= procedure principale() <seqInst> finproc FIN_FICHIER
+    Noeud* sequence = new NoeudSeqInst();
     while(m_lecteur.getSymbole() == "def")
-        fonction();
+        sequence->ajoute(fonction());
     tester("<FINDEFICHIER>");
-  return m_table.cherche("main");
+    sequence->setParent(nullptr);
+  return sequence;
 }
-
 
 Noeud* Interpreteur::fonction(){
     testerEtAvancer("def");
-    SymboleValue v;
     if(m_lecteur.getSymbole() == "<VARIABLE>"){
-        v = m_table.chercheAjoute(m_lecteur.getSymbole());
+        m_arbre->chercheAjoute(m_lecteur.getSymbole());
     }
+    testerEtAvancer("<VARIABLE>");
+    
+    std::vector<Symbole> parametres;
     testerEtAvancer("(");
+    if(m_lecteur.getSymbole() == "<VARIABLE>"){
+      parametres.push_back(m_lecteur.getSymbole());
+      m_lecteur.avancer();
+      while(m_lecteur.getSymbole() == ","){
+        m_lecteur.avancer();
+        tester("<VARIABLE>");
+        parametres.push_back(m_lecteur.getSymbole());
+        m_lecteur.avancer();
+      }
+    }
     testerEtAvancer(")");
     Noeud* sequence = seqInst();
     testerEtAvancer("end");
-    Noeud* self = new NoeudFonction(sequence);
-    v.setValeur(self);
+    Noeud* self = new NoeudFonction(sequence, parametres);
     return self;
 }
 
