@@ -17,6 +17,7 @@ using namespace std;
 class Value;
 
 ////////////////////////////////////////////////////////////////////////////////
+class NoeudSeqInst;
 
 class Noeud {
 // Classe abstraite dont dériveront toutes les classes servant à représenter l'arbre abstrait
@@ -25,36 +26,44 @@ public:
   virtual Value  executer() = 0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
   virtual void ajoute(Noeud* instruction) { throw OperationInterditeException("Ajout non supporté"); }
   virtual ~Noeud() {} // Présence d'un destructeur virtuel conseillée dans les classes abstraites
-  TableSymboles& getTable() {return m_table;}
-  void setParent(Noeud* parent){m_parent = parent;}
-  void addChild(Noeud* child) {child->setParent(this);}
-  SymboleValue* cherche(const Symbole& s);
-  SymboleValue* chercheAjoute(const Symbole& s);
+  virtual NoeudSeqInst* getSeq(){return m_parent;}
+  void setParent(NoeudSeqInst* parent){m_parent = parent;}
 protected:
-  Noeud* m_parent;
-  TableSymboles m_table;
+  NoeudSeqInst* m_parent;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 class NoeudSeqInst : public Noeud {
 // Classe pour représenter un noeud "sequence d'instruction"
 //  qui a autant de fils que d'instructions dans la séquence
-  public:
-     NoeudSeqInst(Noeud* parent);   // Construit une séquence d'instruction vide
+public:
+     NoeudSeqInst(NoeudSeqInst* parent);   // Construit une séquence d'instruction vide
     ~NoeudSeqInst() {} // A cause du destructeur virtuel de la classe Noeud
-    Value executer();    // Exécute chaque instruction de la séquence
+    virtual Value executer();    // Exécute chaque instruction de la séquence
     void ajoute(Noeud* instruction);  // Ajoute une instruction à la séquence
-
-  private:
+    void breakExec();
+    SymboleValue* cherche(const Symbole& s);
+    SymboleValue* chercheAjoute(const Symbole& s);
+protected:
+    bool exec;
+    TableSymboles m_table;
+    SymboleValue* m_func;
     vector<Noeud *> m_instructions; // pour stocker les instructions de la séquence
 };
+class NoeudBoucle : public NoeudSeqInst{
+public:
+  virtual Value  executer() = 0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
+  void ajoute(Noeud* instruction) { m_instructions.push_back(instruction); }
+  virtual ~NoeudBoucle() {} // Présence d'un destructeur virtuel conseillée dans les classes abstraites
+private:
 
+};
 ////////////////////////////////////////////////////////////////////////////////
 class NoeudAffectation : public Noeud {
 // Classe pour représenter un noeud "affectation"
 //  composé de 2 fils : la variable et l'expression qu'on lui affecte
   public:
-     NoeudAffectation(Noeud* parent, Noeud* variable, Noeud* expression); // construit une affectation
+     NoeudAffectation(NoeudSeqInst* parent, Noeud* variable, Noeud* expression); // construit une affectation
     ~NoeudAffectation() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();        // Exécute (évalue) l'expression et affecte sa valeur à la variable
 
@@ -68,7 +77,7 @@ class NoeudOperateurBinaire : public Noeud {
 // Classe pour représenter un noeud "opération binaire" composé d'un opérateur
 //  et de 2 fils : l'opérande gauche et l'opérande droit
   public:
-    NoeudOperateurBinaire(Noeud* parent, Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit);
+    NoeudOperateurBinaire(NoeudSeqInst* parent, Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit);
     // Construit une opération binaire : operandeGauche operateur OperandeDroit
    ~NoeudOperateurBinaire() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();            // Exécute (évalue) l'opération binaire)
@@ -79,22 +88,38 @@ class NoeudOperateurBinaire : public Noeud {
     Noeud*  m_operandeDroit;
 };
 
-class NoeudFonction : public Noeud{
+class NoeudFonction : public NoeudSeqInst{
 public:
-  NoeudFonction(Noeud* parent, Noeud* sequence, const std::vector<Symbole>& parametres);
+  NoeudFonction(NoeudSeqInst* parent, const std::vector<Symbole>& parametres);
   ~NoeudFonction(){}
   Value executer();
 private:
-  Noeud* m_sequence;
   std::vector<Noeud*> m_parametres;
+  Noeud* returnValue;
+};
+
+class NoeudInstReturn : public Noeud{
+public:
+  NoeudInstReturn(Noeud* returnValue);
+  ~NoeudInstReturn(){}
+  Value executer();
+private:
+  Noeud* m_return;
+};
+
+class NoeudInstBreak : public Noeud{
+public:
+  NoeudInstBreak();
+  ~NoeudInstBreak(){}
+  Value executer();
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-class NoeudInstSiRiche : public Noeud {
+class NoeudInstSiRiche : public Noeud{
 // Classe pour représenter un noeud "instruction si"
 //  et ses 2 fils : la condition du si et la séquence d'instruction associée
   public:
-    NoeudInstSiRiche(Noeud* parent, Noeud* condition, Noeud* sequence);
+    NoeudInstSiRiche(NoeudSeqInst* parent);
      // Construit une "instruction si" avec sa condition et sa séquence d'instruction
    ~NoeudInstSiRiche() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
@@ -106,68 +131,66 @@ class NoeudInstSiRiche : public Noeud {
     std::vector<Noeud*> m_sequences;
 };
 
-class NoeudInstRepeter : public Noeud{
+class NoeudInstRepeter : public NoeudBoucle{
 public:
-    NoeudInstRepeter(Noeud* parent, Noeud* sequence, Noeud* condition);
+    NoeudInstRepeter(NoeudSeqInst* parent);
     ~NoeudInstRepeter() {}
     Value executer();
+    void init(Noeud* condition);
 private:
-    Noeud*  m_sequence;
     Noeud*  m_condition;
 };
 
-class NoeudInstTantQue : public Noeud {
+class NoeudInstTantQue : public NoeudBoucle{
 // Classe pour représenter un noeud "instruction ta,t que"
 //  et ses 2 fils : la condition du tant que et la séquence d'instruction associée
   public:
-    NoeudInstTantQue(Noeud* parent, Noeud* sequence, Noeud* condition);
+    NoeudInstTantQue(NoeudSeqInst* parent);
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstTantQue() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
-
+    void init(Noeud* condition);
   private:
-    Noeud*  m_sequence;
     Noeud*  m_condition;
 };
 
-class NoeudInstPour : public Noeud {
-// Classe pour représenter un noeud "instruction ta,t que"
+class NoeudInstPour : public NoeudBoucle{
+// Classe pour représenter un noeud "instruction tant que"
 //  et ses 2 fils : la condition du tant que et la séquence d'instruction associée
   public:
-    NoeudInstPour(Noeud* parent, Noeud* initialisation, Noeud* condition,Noeud* iteration, Noeud* sequence);
+    NoeudInstPour(NoeudSeqInst* parent);
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstPour() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
-
+    void init(Noeud* initialisation, Noeud* condition, Noeud* iteration);
   private:
     Noeud*  m_initialisation;
     Noeud*  m_condition;
     Noeud*  m_iteration;
-    Noeud*  m_sequence;
 };
 
-class NoeudInstDoWhile : public Noeud{
+class NoeudInstDoWhile : public NoeudBoucle{
 public:
-    NoeudInstDoWhile(Noeud* parent, Noeud* sequence, Noeud* cond);
+    NoeudInstDoWhile(NoeudSeqInst* parent);
     ~NoeudInstDoWhile() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    void init(Noeud* condition);
 private:
-    Noeud* m_sequence;
     Noeud* m_condition;
 };
 
-class NoeudInstUntil : public Noeud{
+class NoeudInstUntil : public NoeudBoucle{
 public:
-    NoeudInstUntil(Noeud* parent, Noeud* sequence, Noeud* cond);
+    NoeudInstUntil(NoeudSeqInst* parent);
     ~NoeudInstUntil() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    void init(Noeud* condition);
 private:
-    Noeud* m_sequence;
     Noeud* m_condition;
 };
 class NoeudInstPrint : public Noeud{
 public:
-    NoeudInstPrint(Noeud* parent);
+    NoeudInstPrint(NoeudSeqInst* parent);
     ~NoeudInstPrint() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
     void ajoute(Noeud* val);

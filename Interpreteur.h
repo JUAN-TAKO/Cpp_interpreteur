@@ -21,25 +21,25 @@ public:
 	
 private:
     Lecteur        m_lecteur;  // Le lecteur de symboles utilisé pour analyser le fichier
-    Noeud*         m_arbre;    // L'arbre abstrait
-    Noeud*         m_current_func; // fonction courante
+    NoeudSeqInst*         m_arbre;    // L'arbre abstrait
+    //Noeud*         m_last;     // dernier noeud
     // Implémentation de la grammaire
     Noeud*  programme();   //   <programme> ::= procedure principale() <seqInst> finproc FIN_FICHIER
-    Noeud*  seqInst();	   //     <seqInst> ::= <inst> { <inst> }
-    Noeud*  inst();	   //        <inst> ::= <affectation> ; | <instSi> | <instTantQue> 
-    Noeud*  affectation(); // <affectation> ::= <variable> = <expression> 
-    Noeud*  expression();  //  <expression> ::= <facteur> { <opBinaire> <facteur> }
-    Noeud*  facteur();     //     <facteur> ::= <entier>  |  <variable>  |  - <facteur>  | non <facteur> | ( <expression> )
+    Noeud*  seqInst(NoeudSeqInst* sequence);	   //     <seqInst> ::= <inst> { <inst> }
+    Noeud*  inst(NoeudSeqInst* parent);	   //        <inst> ::= <affectation> ; | <instSi> | <instTantQue> 
+    Noeud*  affectation(NoeudSeqInst* parent); // <affectation> ::= <variable> = <expression> 
+    Noeud*  expression(NoeudSeqInst* parent);  //  <expression> ::= <facteur> { <opBinaire> <facteur> }
+    Noeud*  facteur(NoeudSeqInst* parent);     //     <facteur> ::= <entier>  |  <variable>  |  - <facteur>  | non <facteur> | ( <expression> )
                            //   <opBinaire> ::= + | - | *  | / | < | > | <= | >= | == | != | et | ou
     Noeud* fonction();
     
-    Noeud*  instPour();
-    Noeud*  instTantQue(); // <instTantQue> ::= 
-    Noeud*  instDoWhile();
-    Noeud*  instUntil();
-    Noeud*  instRepeter();
-    Noeud*  instSiRiche();
-    Noeud*  instPrint();
+    Noeud*  instPour(NoeudSeqInst* parent);
+    Noeud*  instTantQue(NoeudSeqInst* parent); // <instTantQue> ::= 
+    Noeud*  instDoWhile(NoeudSeqInst* parent);
+    Noeud*  instUntil(NoeudSeqInst* parent);
+    Noeud*  instRepeter(NoeudSeqInst* parent);
+    Noeud*  instSiRiche(NoeudSeqInst* parent);
+    Noeud*  instPrint(NoeudSeqInst* parent);
     //Noeud*  instScan();
     // outils pour simplifier l'analyse syntaxique
     void tester (const string & symboleAttendu) const throw (SyntaxeException);   // Si symbole courant != symboleAttendu, on lève une exception

@@ -3,17 +3,19 @@
 
 #include <string>
 #include <iostream>
-#include "Symbole.h"
 #include "ArbreAbstrait.h"
+#include "Symbole.h"
 #include <math.h>
 #include <float.h>
+
+
 class Value{
 private:
     struct S{
         int vi;
         float vf;
         std::string vs;
-        
+        Noeud* vn;
         S() : vi(0){}
     } data;
     int type;
@@ -44,7 +46,10 @@ public:
         type = 2;
         data.vs = v;
     }
-    
+    Value(Noeud* v){
+        type = 3;
+        data.vn = v;
+    }
     int getType() const{
         return type;
     }
@@ -55,8 +60,11 @@ public:
         else if(type == 1){
             return (int)data.vf;
         }
-        else{
+        else if(type == 2){
             throw OperationInterditeException("Invalid conversion from string to int");
+        }
+        else{
+            throw OperationInterditeException("Invalid conversion from function to int");
         }
     }
     operator float() const{
@@ -66,8 +74,11 @@ public:
         else if(type == 0){
             return (float)data.vi;
         }
-        else{
+        else if(type == 2){
             throw OperationInterditeException("Invalid conversion from string to float");
+        }
+        else{
+            throw OperationInterditeException("Invalid conversion from function to float");
         }
     }
     operator std::string() const{
@@ -77,10 +88,21 @@ public:
         else if(type == 0){
             return std::to_string(data.vi);
         }
-        else{
+        else if(type == 1){
             return std::to_string(data.vf);
         }
+        else{
+            throw OperationInterditeException("Invalid conversion from function to string");
+        }
         
+    }
+    operator Noeud*() const{
+        if(type == 3){
+            return data.vn;
+        }
+        else{
+            throw OperationInterditeException("Invalid conversion to function");
+        }
     }
     operator bool() const{
         if(type==0){
@@ -102,24 +124,34 @@ public:
         data.vs = "";
         return *this;
     }
-    const Value& operator=(string v){
+    const Value& operator=(std::string v){
         type = 2;
         data.vs = v;
         return *this;
     }
+    const Value& operator=(Noeud* v){
+        type = 3;
+        data.vn = v;
+        return *this;
+    } 
     const Value& operator=(const Value& v){
         type = v.type;
         if(type == 0){
             data.vi = v.data.vi;
         }else if(type == 1){
             data.vf = v.data.vf;
-        }else{
+        }else if(type == 2){
             data.vs = v.data.vs;
+        }
+        else{
+            data.vn = v.data.vn;
         }
         return *this;
     }
     friend Value operator+(const Value& v1, const Value& v2){
-
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation + on function");
+        }
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0: // int int
@@ -153,6 +185,9 @@ public:
         return Value(0);
     }
     friend Value operator-(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation - on function");
+        }
        int types = v1.type*3 + v2.type;
         switch(types){
             case 0: // int int
@@ -176,6 +211,9 @@ public:
         }
     }
     friend Value operator*(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation * on function");
+        }
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0: // int int
@@ -199,6 +237,9 @@ public:
         }
     }
     friend Value operator/(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation / on function");
+        }
         int types =v1.type*3 + v2.type;
         switch(types){
             case 0: // int int
@@ -222,6 +263,9 @@ public:
         }
     }
     friend Value operator%(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation % on function");
+        }
         int types =v1.type*3 + v2.type;
         switch(types){
             case 0: // int int
@@ -246,6 +290,9 @@ public:
         return 0;
     }
     friend Value operator==(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation == on function");
+        }
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0:
@@ -279,6 +326,9 @@ public:
         return 0;
     }
     friend Value operator!=(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation != on function");
+        }
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0:
@@ -312,7 +362,9 @@ public:
         return 0;
     }
     friend Value operator<=(const Value& v1, const Value& v2){
-        
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation <= on function");
+        }
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0:
@@ -346,6 +398,9 @@ public:
         return 0;
     }
     friend Value operator>=(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation >= on function");
+        }
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0:
@@ -379,6 +434,9 @@ public:
         return 0;
     }
     friend Value operator<(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation < on function");
+        }
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0:
@@ -412,6 +470,9 @@ public:
         return 0;
     }
     friend Value operator>(const Value& v1, const Value& v2){
+        if(v1.type == 3 || v2.type == 3){
+            throw OperationInterditeException("Invalid operation > on function");
+        }
         int types = v1.type*3 + v2.type;
         switch(types){
             case 0:
@@ -447,14 +508,14 @@ public:
     friend std::ostream& operator<<(ostream& out, const Value& v){
         if (v.type == 0) out << (int)v;
         else if (v.type == 1) out << (float)v;
-        else out << (string)v;
+        else if (v.type == 2) out << (std::string)v;
+        else out << (Noeud*)v;
         return out;
     }
 };
 
 
-class SymboleValue : public Symbole,  // Un symbole valué est un symbole qui a une valeur (définie ou pas)
-                     public Noeud  {  //  et c'est aussi une feuille de l'arbre abstrait
+class SymboleValue : public Symbole, public Noeud{  //  et c'est aussi une feuille de l'arbre abstrait
 public:
 	  SymboleValue(const Symbole & s); // Construit un symbole valué à partir d'un symbole existant s
 	  ~SymboleValue( ) {}

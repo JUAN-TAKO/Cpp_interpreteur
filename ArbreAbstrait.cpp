@@ -5,9 +5,12 @@
 #include "Exceptions.h"
 
 
+////////////////////////////////////////////////////////////////////////////////
+// NoeudSeqInst
+////////////////////////////////////////////////////////////////////////////////
 
-SymboleValue* Noeud::cherche(const Symbole& s){
-  Noeud* p = m_parent;
+SymboleValue* NoeudSeqInst::cherche(const Symbole& s){
+  NoeudSeqInst* p = m_parent;
   SymboleValue* val = nullptr;
   TableSymboles& table = m_table;
   
@@ -23,7 +26,7 @@ SymboleValue* Noeud::cherche(const Symbole& s){
   }
   
 }
-SymboleValue* Noeud::chercheAjoute(const Symbole& s){
+SymboleValue* NoeudSeqInst::chercheAjoute(const Symbole& s){
   SymboleValue* v = cherche(s);
   if(!v){
     v = m_table.chercheAjoute(s);
@@ -31,20 +34,18 @@ SymboleValue* Noeud::chercheAjoute(const Symbole& s){
   return v;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// NoeudSeqInst
-////////////////////////////////////////////////////////////////////////////////
-
-NoeudSeqInst::NoeudSeqInst(Noeud* parent) : m_instructions(){
+NoeudSeqInst::NoeudSeqInst(NoeudSeqInst* parent) : m_instructions(){
   setParent(parent);
 }
 
 Value NoeudSeqInst::executer() {
-  for (unsigned int i = 0; i < m_instructions.size(); i++)
+  for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
     m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
-  return 0; // La valeur renvoyée ne représente rien !
+  return 0;
 }
-
+void NoeudSeqInst::breakExec(){
+  exec = false;
+}
 void NoeudSeqInst::ajoute(Noeud* instruction) {
   if (instruction!=nullptr){
     instruction->setParent(this);
@@ -53,10 +54,41 @@ void NoeudSeqInst::ajoute(Noeud* instruction) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// NoeudInstReturn
+////////////////////////////////////////////////////////////////////////////////
+
+
+NoeudInstReturn::NoeudInstReturn(Noeud* returnValue) : m_return(returnValue){}
+Value NoeudInstReturn::executer(){
+  NoeudSeqInst* p = m_parent;
+  while(p->getSeq()->getSeq() != nullptr){
+    p->breakExec();
+    p = p->getSeq();
+  }
+  p->breakExec();
+  p->chercheAjoute(Symbole("__func_return_val__"))->setValeur(m_return->executer());
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// NoeudInstBreak
+////////////////////////////////////////////////////////////////////////////////
+
+NoeudInstBreak::NoeudInstBreak(){}
+Value NoeudInstBreak::executer(){
+  NoeudSeqInst* p = m_parent;
+  while(!dynamic_cast<NoeudBoucle*>(p)){
+    p->breakExec();
+    p = p->getSeq();
+  }
+  p->breakExec();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // NoeudAffectation
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudAffectation::NoeudAffectation(Noeud* parent, Noeud* variable, Noeud* expression)
+NoeudAffectation::NoeudAffectation(NoeudSeqInst* parent, Noeud* variable, Noeud* expression)
 : m_variable(variable), m_expression(expression){
   setParent(parent);
 }
@@ -71,7 +103,7 @@ Value NoeudAffectation::executer() {
 // NoeudOperateurBinaire
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudOperateurBinaire::NoeudOperateurBinaire(Noeud* parent, Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit)
+NoeudOperateurBinaire::NoeudOperateurBinaire(NoeudSeqInst* parent, Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit)
 : m_operateur(operateur), m_operandeGauche(operandeGauche), m_operandeDroit(operandeDroit){
   setParent(parent);
 }
@@ -99,6 +131,8 @@ Value NoeudOperateurBinaire::executer() {
     if (od == Value(0)) throw DivParZeroException();
     valeur = og % od;
   }
+  
+
   else if (this->m_operateur == "/") {
     if (od == Value(0)) throw DivParZeroException();
     valeur = og / od;
@@ -110,26 +144,27 @@ Value NoeudOperateurBinaire::executer() {
 // NoeudFonction
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudFonction::NoeudFonction(Noeud* parent, Noeud* sequence, const std::vector<Symbole>& parametres)
-: m_sequence(sequence)
+NoeudFonction::NoeudFonction(NoeudSeqInst* parent, const std::vector<Symbole>& parametres) : NoeudSeqInst(parent)
 {
   for(auto p : parametres){
     m_parametres.push_back((Noeud*)m_table.chercheAjoute(p));
   }
 }
-
 Value NoeudFonction::executer(){
-
+  for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
+    m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
+  return m_table.cherche(Symbole("__func_return_val__"))->getValue();
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstSi
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstSiRiche::NoeudInstSiRiche(Noeud* parent, Noeud* condition, Noeud* sequence)
-: state(true){
-  m_conditions.push_back(condition);
-  m_sequences.push_back(sequence);
+NoeudInstSiRiche::NoeudInstSiRiche(NoeudSeqInst* parent)
+: state(true)
+{
+  setParent(parent);
 }
 
 Value NoeudInstSiRiche::executer() {
@@ -151,77 +186,109 @@ void NoeudInstSiRiche::ajoute(Noeud* instruction){
 // NoeudInstRepeter
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstRepeter::NoeudInstRepeter(Noeud* parent, Noeud* sequence, Noeud* condition)
-: m_sequence(sequence)
-, m_condition(condition)
-{}
+NoeudInstRepeter::NoeudInstRepeter(NoeudSeqInst* parent)
+{
+  setParent(parent);
+}
 Value NoeudInstRepeter::executer(){
     do{
-        m_sequence->executer();
+        for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
+          m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
     }
-    while(!m_condition->executer());
+    while(exec && !m_condition->executer());
     return 0;
 }
 
+void NoeudInstRepeter::init(Noeud* condition){
+  m_condition = condition;
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstUntil
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstUntil::NoeudInstUntil(Noeud* parent, Noeud* sequence, Noeud* condition)
-: m_sequence(sequence), m_condition(condition){
+NoeudInstUntil::NoeudInstUntil(NoeudSeqInst* parent)
+{
+  setParent(parent);
 }
 
 Value NoeudInstUntil::executer(){
-  while(!m_condition->executer()) m_sequence->executer();
+  while(exec && !m_condition->executer())
+    for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
+      m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
   return 0;
+}
+void NoeudInstUntil::init(Noeud* condition){
+  m_condition = condition;
 }
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstTantQue
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstTantQue::NoeudInstTantQue(Noeud* parent, Noeud* sequence, Noeud* condition) 
-: m_sequence(sequence), m_condition(condition) {
+NoeudInstTantQue::NoeudInstTantQue(NoeudSeqInst* parent) 
+{
+  setParent(parent);
 }
 
 Value NoeudInstTantQue::executer() {
-  while (m_condition->executer()) m_sequence->executer();
+  while (exec && m_condition->executer())
+    for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
+      m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
   return 0;
+}
+void NoeudInstTantQue::init(Noeud* condition){
+  m_condition = condition;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstDoWhile
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstDoWhile::NoeudInstDoWhile(Noeud* parent, Noeud* condition, Noeud* sequence)
-: m_sequence(sequence), m_condition(condition){
+NoeudInstDoWhile::NoeudInstDoWhile(NoeudSeqInst* parent)
+{
+  setParent(parent);
+}
+
+void NoeudInstDoWhile::init(Noeud* condition){
+  m_condition = condition;
 }
 
 Value NoeudInstDoWhile::executer(){
   do{
-    m_sequence->executer();
-  }while(m_condition->executer());
+    for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
+      m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
+  }while(exec && m_condition->executer());
   return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstPour
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstPour::NoeudInstPour(Noeud* parent, Noeud* initialisation, Noeud* condition, Noeud* iteration, Noeud* sequence) 
-: m_initialisation(initialisation), m_condition(condition), m_iteration(iteration), m_sequence(sequence) {
+NoeudInstPour::NoeudInstPour(NoeudSeqInst* parent)
+{
+  setParent(parent);
 }
 
 
 Value NoeudInstPour::executer() {
-  for (m_initialisation->executer();m_condition->executer();m_iteration->executer()){
-      m_sequence->executer();
-  }
+  for (m_initialisation->executer(); exec && m_condition->executer();m_iteration->executer())
+      for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
+        m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
   return 0;
 }
+
+void NoeudInstPour::init(Noeud* initialisation, Noeud* condition, Noeud* iteration){
+  m_initialisation = initialisation;
+  m_condition = condition;
+  m_iteration = iteration;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstPrint
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstPrint::NoeudInstPrint(Noeud* parent){}
+NoeudInstPrint::NoeudInstPrint(NoeudSeqInst* parent){
+  setParent(parent);
+}
 
 void NoeudInstPrint::ajoute(Noeud* val){
   m_vals.push_back(val);
