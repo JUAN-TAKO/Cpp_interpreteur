@@ -168,6 +168,8 @@ NoeudInstSiRiche::NoeudInstSiRiche(NoeudSeqInst* parent)
 }
 
 Value NoeudInstSiRiche::executer() {
+    //parcours de toutes les séquence jusquà : soit executer la premiere instructions valide, 
+    //soit si aucune conditions est validé on execute l'instuction else en detectant si il y a plus de sequence que de condition.
     unsigned int i;
     for(i = 0; i < m_conditions.size() && !m_conditions[i]->executer(); i++);
     if(i < m_conditions.size() || m_conditions.size() < m_sequences.size())
@@ -295,25 +297,42 @@ void NoeudInstPrint::ajoute(Noeud* val){
 }
 
 Value NoeudInstPrint::executer(){
-  for(auto val : m_vals){
+  for(auto val: m_vals){
     std::cout << val->executer();
   }
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// NoeudInstScan
+// NoeudInstScanI
 ////////////////////////////////////////////////////////////////////////////////
-/*
-NoeudInstScan::NoeudInstScan(){}
 
-void NoeudInstScan::ajouter(Noeud* var){
-  m_vars.push_back(var);
+NoeudInstScanI::NoeudInstScanI(Noeud* var){
+    Value v;
+    v.scanI();
+    m_affect = new NoeudAffectation(var,v);
 }
 
-Value NoeudInstScan::executer(){
-  for(auto var : m_vars){
+Value NoeudInstScanI::executer(){
+  return m_affect->executer();
+}
+
+NoeudInstScanI::NoeudInstScanF(Noeud* var){
     Value v;
-    std::cin >> v;
-  }
-}*/
+    v.scanF();
+    m_affect = new NoeudAffectation(var,v);
+}
+
+Value NoeudInstScanF::executer(){
+  return m_affect->executer();
+}
+
+NoeudInstScanI::NoeudInstScanS(Noeud* var){
+    Value v;
+    v.scanS();
+    m_affect = new NoeudAffectation(var,v);
+}
+
+Value NoeudInstScanS::executer(){
+  return m_affect->executer();
+}

@@ -196,15 +196,34 @@ public:
     void ajoute(Noeud* val);
 private:
     std::vector<Noeud*> m_vals;
-};/*
-class NoeudInstScan{
+};
+class NoeudInstScanI{
 public:
-    NoeudInstScan();
-    ~NoeudInstScan() {} // A cause du destructeur virtuel de la classe Noeud
+    NoeudInstScanI();
+    ~NoeudInstScanI() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
     void ajouter(Noeud* var);
 private:
-    std::vector<Noeud*> m_vars;
-};*/
+    Noeud* m_affect;
+    
+};
+class NoeudInstScanF{
+public:
+    NoeudInstScanF();
+    ~NoeudInstScanF() {} // A cause du destructeur virtuel de la classe Noeud
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    void ajouter(Noeud* var);
+private:
+    Noeud* m_affect;
+};
+class NoeudInstScanS{
+public:
+    NoeudInstScanS();
+    ~NoeudInstScanS() {} // A cause du destructeur virtuel de la classe Noeud
+    Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    void ajouter(Noeud* var);
+private:
+    Noeud* m_affect;
+};
 
 #endif /* ARBREABSTRAIT_H */
