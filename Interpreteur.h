@@ -4,8 +4,10 @@
 #include "Symbole.h"
 #include "Lecteur.h"
 #include "Exceptions.h"
-#include "TableSymboles.h"
 #include "ArbreAbstrait.h"
+#include "TableSymboles.h"
+#include "SymboleValue.h"
+#include "Value.h"
 
 class Interpreteur {
 public:
@@ -17,22 +19,26 @@ public:
                                       //   la table des symboles (ts) et l'arbre abstrait (arbre) auront été construits
 	                                    // Sinon, une exception sera levée
 
-	inline Noeud* getArbre () const { return m_arbre; }                    // accesseur
+	inline NoeudSeqInst* getArbre () const { return m_arbre; }                    // accesseur
 	
 private:
     Lecteur        m_lecteur;  // Le lecteur de symboles utilisé pour analyser le fichier
     NoeudSeqInst*         m_arbre;    // L'arbre abstrait
-    //Noeud*         m_last;     // dernier noeud
+    NoeudFonction* m_func;
+    TableSymboles m_globals;
     // Implémentation de la grammaire
-    Noeud*  programme();   //   <programme> ::= procedure principale() <seqInst> finproc FIN_FICHIER
-    Noeud*  seqInst(NoeudSeqInst* sequence);	   //     <seqInst> ::= <inst> { <inst> }
+    NoeudSeqInst*  programme();   //   <programme> ::= procedure principale() <seqInst> finproc FIN_FICHIER
+    NoeudSeqInst*  seqInst(NoeudSeqInst* sequence);	   //     <seqInst> ::= <inst> { <inst> }
     Noeud*  inst(NoeudSeqInst* parent);	   //        <inst> ::= <affectation> ; | <instSi> | <instTantQue> 
-    Noeud*  affectation(NoeudSeqInst* parent); // <affectation> ::= <variable> = <expression> 
+    Noeud*  affectationOuCall(NoeudSeqInst* parent); // <affectation> ::= <variable> = <expression>
+    Noeud*  affectation(NoeudSeqInst* parent, Symbole s);
+    Noeud*  call(NoeudSeqInst* parent, Symbole s);
     Noeud*  expression(NoeudSeqInst* parent);  //  <expression> ::= <facteur> { <opBinaire> <facteur> }
     Noeud*  facteur(NoeudSeqInst* parent);     //     <facteur> ::= <entier>  |  <variable>  |  - <facteur>  | non <facteur> | ( <expression> )
                            //   <opBinaire> ::= + | - | *  | / | < | > | <= | >= | == | != | et | ou
-    Noeud* fonction();
-    
+    Noeud*  fonction(NoeudSeqInst* parent);
+    Noeud*  instReturn(NoeudSeqInst* parent);
+    Noeud*  instBreak(NoeudSeqInst* parent);
     Noeud*  instPour(NoeudSeqInst* parent);
     Noeud*  instTantQue(NoeudSeqInst* parent); // <instTantQue> ::= 
     Noeud*  instDoWhile(NoeudSeqInst* parent);

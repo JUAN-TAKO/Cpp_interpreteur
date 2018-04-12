@@ -1,5 +1,4 @@
 def
-main
 end
 for
 in
@@ -11,6 +10,8 @@ repeat
 until
 scan
 print
+return
+break
 ;
 :
 |

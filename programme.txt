@@ -1,82 +1,12 @@
-# Fichier de test
-# Les lignes de commentaires commencent par #
-def main()
-  a = 1;
-  b = 2;
-  c = 3;
-  d = 0;
-
-  #test if:
-  if (b < (c + a))
-    print("OK ");
-  end
-
-  #test else:
-  if (b > (c + a))
-    print("ERR ");
-  else
-    print("OK ");
-  end
-
-  #test elseif-if:
-  if (d < a)
-    print("OK ");
-  elseif (d == a)
-    print("ERR ");
-  else
-    print("ERR ");
-  end
-
-  d = a;
-  #test elseif-elseif:
-  if (d < a)
-    print("ERR ");
-  elseif (d == a)
-    print("OK ");
-  else
-    print("ERR ");
-  end
-  d = 4;
-  #test elseif-else:
-  if (d < a)
-    print("ERR ");
-  elseif (d == a)
-    print("ERR ");
-  else
-    print("OK ");
-  end
-
-  #test for et elseif:
-  for(i = 0; i < 10; i = i + 1)
-    if(i == 0)
-      print(0);
-    elseif(i == 1)
-      print(1);
-    elseif(i == 2)
-      print(2);
-    elseif(i == 3)
-      print(3);
-    elseif(i == 4)
-      print(4);
-    elseif(i == 5)
-      print(5);
-    elseif(i == 6)
-      print(6);
-    elseif(i == 7)
-      print(7);
-    elseif(i == 8)
-      print(8);
-    elseif(i == 9)
-      print(9);
+def factorial(n)
+    if(n <= 1)
+        return 1;
     else
-      print("ERR");
+        print(n);
+        return factorial(n-1)*n;
     end
-  end
-  print(" ");
-  for (i = 0; i < 10;)
-    print(2 * i);
-    i = i + .5;
-  end
-  
 end
-# Commentaire Final
+
+def main()
+  print(factorial(4));
+end

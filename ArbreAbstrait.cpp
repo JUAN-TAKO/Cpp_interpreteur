@@ -1,42 +1,51 @@
-#include <stdlib.h>
 #include "ArbreAbstrait.h"
-#include "Symbole.h"
-#include "SymboleValue.h"
-#include "Exceptions.h"
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudSeqInst
 ////////////////////////////////////////////////////////////////////////////////
+/*
+SymboleValue* NoeudSeqInst::cherche(const Symbole& s, bool except){
 
-SymboleValue* NoeudSeqInst::cherche(const Symbole& s){
-  NoeudSeqInst* p = m_parent;
+  NoeudSeqInst* p = getSeq();
+  
   SymboleValue* val = nullptr;
-  TableSymboles& table = m_table;
-  
-  val = table.cherche(s);
-    if(val)
+  TableSymboles* table = &getTable();
+  if(!except){
+    try{
+      val = table->cherche(s);
       return val;
-  while(p != nullptr){
-    table = p->m_table;
-    val = table.cherche(s);
-    if(val)
-      return val;
-    p = p->m_parent;
+    }
+    catch(...){}
   }
-  
+  else{
+    val = table->cherche(s);
+    return val;
+  }
+  while(p != nullptr){
+    table = &(p->getTable());
+    if(!except){
+      try{
+        val = table->cherche(s);
+        return val;
+      }
+      catch(...){}
+    }else{
+      val = table->cherche(s);
+      return val;
+    }
+    p = p->getSeq();
+  }
+  return nullptr;
 }
-SymboleValue* NoeudSeqInst::chercheAjoute(const Symbole& s){
+SymboleValue* NoeudSeqInst::chercheAjoute(Symbole s){
   SymboleValue* v = cherche(s);
   if(!v){
-    v = m_table.chercheAjoute(s);
+    v = getTable().chercheAjoute(s);
   }
   return v;
 }
-
-NoeudSeqInst::NoeudSeqInst(NoeudSeqInst* parent) : m_instructions(){
-  setParent(parent);
-}
+*/
+NoeudSeqInst::NoeudSeqInst(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals) : Noeud(parent, func, globals), exec(true){}
 
 Value NoeudSeqInst::executer() {
   for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
@@ -58,15 +67,17 @@ void NoeudSeqInst::ajoute(Noeud* instruction) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-NoeudInstReturn::NoeudInstReturn(Noeud* returnValue) : m_return(returnValue){}
+NoeudInstReturn::NoeudInstReturn(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals, Noeud* returnValue) : Noeud(parent, func, globals), m_return(returnValue){}
 Value NoeudInstReturn::executer(){
-  NoeudSeqInst* p = m_parent;
+  NoeudSeqInst* p = getSeq();
   while(p->getSeq()->getSeq() != nullptr){
     p->breakExec();
     p = p->getSeq();
   }
   p->breakExec();
-  p->chercheAjoute(Symbole("__func_return_val__"))->setValeur(m_return->executer());
+  Value v = m_return->executer();
+  getFunc()->getTable().chercheAjoute(Symbole("__func_return_val__"))->setValeur(v);
+  return 0;
 }
 
 
@@ -74,24 +85,23 @@ Value NoeudInstReturn::executer(){
 // NoeudInstBreak
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstBreak::NoeudInstBreak(){}
+NoeudInstBreak::NoeudInstBreak(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals) : Noeud(parent, func, globals){}
 Value NoeudInstBreak::executer(){
-  NoeudSeqInst* p = m_parent;
+  NoeudSeqInst* p = getSeq();
   while(!dynamic_cast<NoeudBoucle*>(p)){
     p->breakExec();
     p = p->getSeq();
   }
   p->breakExec();
+  return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudAffectation
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudAffectation::NoeudAffectation(NoeudSeqInst* parent, Noeud* variable, Noeud* expression)
-: m_variable(variable), m_expression(expression){
-  setParent(parent);
-}
+NoeudAffectation::NoeudAffectation(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals, Noeud* variable, Noeud* expression)
+: Noeud(parent, func, globals), m_variable(variable), m_expression(expression){}
 
 Value NoeudAffectation::executer() {
   Value valeur = m_expression->executer(); // On exécute (évalue) l'expression
@@ -103,10 +113,8 @@ Value NoeudAffectation::executer() {
 // NoeudOperateurBinaire
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudOperateurBinaire::NoeudOperateurBinaire(NoeudSeqInst* parent, Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit)
-: m_operateur(operateur), m_operandeGauche(operandeGauche), m_operandeDroit(operandeDroit){
-  setParent(parent);
-}
+NoeudOperateurBinaire::NoeudOperateurBinaire(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals, Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit)
+: Noeud(parent, func, globals), m_operateur(operateur), m_operandeGauche(operandeGauche), m_operandeDroit(operandeDroit){}
 
 Value NoeudOperateurBinaire::executer() {
   Value og, od, valeur;
@@ -144,28 +152,52 @@ Value NoeudOperateurBinaire::executer() {
 // NoeudFonction
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudFonction::NoeudFonction(NoeudSeqInst* parent, const std::vector<Symbole>& parametres) : NoeudSeqInst(parent)
-{
-  for(auto p : parametres){
-    m_parametres.push_back((Noeud*)m_table.chercheAjoute(p));
-  }
+NoeudFonction::NoeudFonction(NoeudSeqInst* parent, TableSymboles* globals) : NoeudSeqInst(parent, nullptr, globals)
+{}
+
+Symbole& NoeudFonction::chercheAjoute(Symbole s){
+  
+}
+
+void NoeudFonction::ajoute(Symbole s, bool parametre){
+  m_variables.push_back(s);
+  if(parametre)
+    m_parametres.push_back(&m_variables.back());
 }
 Value NoeudFonction::executer(){
   for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
     m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
-  return m_table.cherche(Symbole("__func_return_val__"))->getValue();
+  Value v;
+  try{
+    v = getTable().cherche(Symbole("__func_return_val__"))->getValue();
+  }catch(NonDeclareException){}
+  m_stack.pop();
+  return v;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// NoeudCall
+////////////////////////////////////////////////////////////////////////////////
 
+void NoeudCall::ajoute(Noeud* arg){
+  m_args.push_back(arg);
+}
+Value NoeudCall::executer(){
+  NoeudFonction* f = (NoeudFonction*)m_target_func->executer();
+  if(f->m_parametres.size() != m_args.size()){
+    throw SyntaxeException("Nombre de paramètres incorrect");
+  }
+  f->push();
+  for(int i = 0; i < f->m_parametres.size(); i++)
+    f->getTable().chercheAjoute(*f->m_parametres[i])->setValeur(m_args[i]->executer());
+  return f->executer();
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstSi
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstSiRiche::NoeudInstSiRiche(NoeudSeqInst* parent)
-: state(true)
-{
-  setParent(parent);
-}
+NoeudInstSiRiche::NoeudInstSiRiche(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals)
+: Noeud(parent, func, globals), state(true){}
 
 Value NoeudInstSiRiche::executer() {
     //parcours de toutes les séquence jusquà : soit executer la premiere instructions valide, 
@@ -188,10 +220,8 @@ void NoeudInstSiRiche::ajoute(Noeud* instruction){
 // NoeudInstRepeter
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstRepeter::NoeudInstRepeter(NoeudSeqInst* parent)
-{
-  setParent(parent);
-}
+NoeudInstRepeter::NoeudInstRepeter(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals)
+: NoeudBoucle(parent, func, globals){}
 Value NoeudInstRepeter::executer(){
     do{
         for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
@@ -208,10 +238,8 @@ void NoeudInstRepeter::init(Noeud* condition){
 // NoeudInstUntil
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstUntil::NoeudInstUntil(NoeudSeqInst* parent)
-{
-  setParent(parent);
-}
+NoeudInstUntil::NoeudInstUntil(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals)
+: NoeudBoucle(parent, func, globals){}
 
 Value NoeudInstUntil::executer(){
   while(exec && !m_condition->executer())
@@ -226,10 +254,8 @@ void NoeudInstUntil::init(Noeud* condition){
 // NoeudInstTantQue
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstTantQue::NoeudInstTantQue(NoeudSeqInst* parent) 
-{
-  setParent(parent);
-}
+NoeudInstTantQue::NoeudInstTantQue(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals)
+: NoeudBoucle(parent, func, globals){}
 
 Value NoeudInstTantQue::executer() {
   while (exec && m_condition->executer())
@@ -245,10 +271,8 @@ void NoeudInstTantQue::init(Noeud* condition){
 // NoeudInstDoWhile
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstDoWhile::NoeudInstDoWhile(NoeudSeqInst* parent)
-{
-  setParent(parent);
-}
+NoeudInstDoWhile::NoeudInstDoWhile(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals)
+: NoeudBoucle(parent, func, globals){}
 
 void NoeudInstDoWhile::init(Noeud* condition){
   m_condition = condition;
@@ -265,10 +289,8 @@ Value NoeudInstDoWhile::executer(){
 // NoeudInstPour
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstPour::NoeudInstPour(NoeudSeqInst* parent)
-{
-  setParent(parent);
-}
+NoeudInstPour::NoeudInstPour(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals)
+: NoeudBoucle(parent, func, globals){}
 
 
 Value NoeudInstPour::executer() {
@@ -288,9 +310,8 @@ void NoeudInstPour::init(Noeud* initialisation, Noeud* condition, Noeud* iterati
 // NoeudInstPrint
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudInstPrint::NoeudInstPrint(NoeudSeqInst* parent){
-  setParent(parent);
-}
+NoeudInstPrint::NoeudInstPrint(NoeudSeqInst* parent, NoeudFonction* func, TableSymboles* globals)
+: Noeud(parent, func, globals){}
 
 void NoeudInstPrint::ajoute(Noeud* val){
   m_vals.push_back(val);
@@ -300,13 +321,14 @@ Value NoeudInstPrint::executer(){
   for(auto val: m_vals){
     std::cout << val->executer();
   }
+  std::cout << std::endl;
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// NoeudInstScanI
+// NoeudInstScan
 ////////////////////////////////////////////////////////////////////////////////
-
+/*
 NoeudInstScanI::NoeudInstScanI(Noeud* var){
     Value v;
     v.scanI();
@@ -336,3 +358,4 @@ NoeudInstScanI::NoeudInstScanS(Noeud* var){
 Value NoeudInstScanS::executer(){
   return m_affect->executer();
 }
+*/

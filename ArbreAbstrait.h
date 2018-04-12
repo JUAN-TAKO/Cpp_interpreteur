@@ -8,50 +8,51 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
-
-using namespace std;
-
 #include "Symbole.h"
 #include "Exceptions.h"
-#include "TableSymboles.h"
-class Value;
+#include <stack>
 
 ////////////////////////////////////////////////////////////////////////////////
 class NoeudSeqInst;
+class Value;
 
 class Noeud {
 // Classe abstraite dont dériveront toutes les classes servant à représenter l'arbre abstrait
 // Remarque : la classe ne contient aucun constructeur
 public:
-  virtual Value  executer() = 0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
+  Noeud(NoeudSeqInst* parent, NoeudFonction* func) : m_parent(parent), m_func(func){}
+  virtual Value executer() = 0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
   virtual void ajoute(Noeud* instruction) { throw OperationInterditeException("Ajout non supporté"); }
   virtual ~Noeud() {} // Présence d'un destructeur virtuel conseillée dans les classes abstraites
-  virtual NoeudSeqInst* getSeq(){return m_parent;}
+  NoeudSeqInst* getSeq(){return m_parent;}
   void setParent(NoeudSeqInst* parent){m_parent = parent;}
-protected:
+  NoeudFonction* getFunc(){return m_func;}
+private:
   NoeudSeqInst* m_parent;
+  NoeudFonction* m_func;
 };
+
+#include "TableSymboles.h"
+#include "SymboleValue.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 class NoeudSeqInst : public Noeud {
 // Classe pour représenter un noeud "sequence d'instruction"
 //  qui a autant de fils que d'instructions dans la séquence
 public:
-     NoeudSeqInst(NoeudSeqInst* parent);   // Construit une séquence d'instruction vide
+     NoeudSeqInst(NoeudSeqInst* parent, NoeudFonction* func);   // Construit une séquence d'instruction vide
     ~NoeudSeqInst() {} // A cause du destructeur virtuel de la classe Noeud
     virtual Value executer();    // Exécute chaque instruction de la séquence
     void ajoute(Noeud* instruction);  // Ajoute une instruction à la séquence
     void breakExec();
-    SymboleValue* cherche(const Symbole& s);
-    SymboleValue* chercheAjoute(const Symbole& s);
 protected:
     bool exec;
-    TableSymboles m_table;
-    SymboleValue* m_func;
+    //SymboleValue* m_func;
     vector<Noeud *> m_instructions; // pour stocker les instructions de la séquence
 };
 class NoeudBoucle : public NoeudSeqInst{
 public:
+  NoeudBoucle(NoeudSeqInst* parent, NoeudFonction* func) : NoeudSeqInst(parent, func){}
   virtual Value  executer() = 0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
   void ajoute(Noeud* instruction) { m_instructions.push_back(instruction); }
   virtual ~NoeudBoucle() {} // Présence d'un destructeur virtuel conseillée dans les classes abstraites
@@ -63,7 +64,7 @@ class NoeudAffectation : public Noeud {
 // Classe pour représenter un noeud "affectation"
 //  composé de 2 fils : la variable et l'expression qu'on lui affecte
   public:
-     NoeudAffectation(NoeudSeqInst* parent, Noeud* variable, Noeud* expression); // construit une affectation
+     NoeudAffectation(NoeudSeqInst* parent, NoeudFonction* func, Noeud* variable, Noeud* expression); // construit une affectation
     ~NoeudAffectation() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();        // Exécute (évalue) l'expression et affecte sa valeur à la variable
 
@@ -77,7 +78,7 @@ class NoeudOperateurBinaire : public Noeud {
 // Classe pour représenter un noeud "opération binaire" composé d'un opérateur
 //  et de 2 fils : l'opérande gauche et l'opérande droit
   public:
-    NoeudOperateurBinaire(NoeudSeqInst* parent, Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit);
+    NoeudOperateurBinaire(NoeudSeqInst* parent, NoeudFonction* func, Symbole operateur, Noeud* operandeGauche, Noeud* operandeDroit);
     // Construit une opération binaire : operandeGauche operateur OperandeDroit
    ~NoeudOperateurBinaire() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();            // Exécute (évalue) l'opération binaire)
@@ -89,18 +90,47 @@ class NoeudOperateurBinaire : public Noeud {
 };
 
 class NoeudFonction : public NoeudSeqInst{
+friend class NoeudCall;
 public:
-  NoeudFonction(NoeudSeqInst* parent, const std::vector<Symbole>& parametres);
+  NoeudFonction(NoeudSeqInst* parent);
   ~NoeudFonction(){}
   Value executer();
+  void ajoute(Symbole s, bool parametre);
+  Symbole& chercheAjoute(Symbole s);
+  TableSymboles& getTable(){return m_stack.top();}
+  void push() {m_stack.push(TableSymboles());}
 private:
-  std::vector<Noeud*> m_parametres;
+  std::stack<TableSymboles> m_stack;
+  std::vector<Symbole> m_variables;
+  std::vector<Symbole*> m_parametres;
+  TableSymbole* m_globals;
   Noeud* returnValue;
+};
+
+class NoeudVariable : public Noeud{
+public:
+  NoeudVariable(NoeudSeqInst* parent, NoeudFonction* func, Symbole s) : Noeud(parent, func, globals), m_symbole(s){}
+  ~NoeudVariable(){}
+  Value executer();
+
+private:
+  Symbole m_symbole;
+}
+
+class NoeudCall : public Noeud{
+public:
+  NoeudCall(NoeudSeqInst* parent, NoeudFonction* func, Noeud* target_func) : Noeud(parent, func, globals), m_target_func(target_func){}
+  ~NoeudCall(){}
+  Value executer();
+  void ajoute(Noeud* n);
+private:
+  std::vector<Noeud*> m_args;
+  Noeud* m_target_func;
 };
 
 class NoeudInstReturn : public Noeud{
 public:
-  NoeudInstReturn(Noeud* returnValue);
+  NoeudInstReturn(NoeudSeqInst* parent, NoeudFonction* func, Noeud* returnValue);
   ~NoeudInstReturn(){}
   Value executer();
 private:
@@ -109,7 +139,7 @@ private:
 
 class NoeudInstBreak : public Noeud{
 public:
-  NoeudInstBreak();
+  NoeudInstBreak(NoeudSeqInst* parent, NoeudFonction* func);
   ~NoeudInstBreak(){}
   Value executer();
 };
@@ -119,7 +149,7 @@ class NoeudInstSiRiche : public Noeud{
 // Classe pour représenter un noeud "instruction si"
 //  et ses 2 fils : la condition du si et la séquence d'instruction associée
   public:
-    NoeudInstSiRiche(NoeudSeqInst* parent);
+    NoeudInstSiRiche(NoeudSeqInst* parent, NoeudFonction* func);
      // Construit une "instruction si" avec sa condition et sa séquence d'instruction
    ~NoeudInstSiRiche() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
@@ -133,7 +163,7 @@ class NoeudInstSiRiche : public Noeud{
 
 class NoeudInstRepeter : public NoeudBoucle{
 public:
-    NoeudInstRepeter(NoeudSeqInst* parent);
+    NoeudInstRepeter(NoeudSeqInst* parent, NoeudFonction* func);
     ~NoeudInstRepeter() {}
     Value executer();
     void init(Noeud* condition);
@@ -145,7 +175,7 @@ class NoeudInstTantQue : public NoeudBoucle{
 // Classe pour représenter un noeud "instruction ta,t que"
 //  et ses 2 fils : la condition du tant que et la séquence d'instruction associée
   public:
-    NoeudInstTantQue(NoeudSeqInst* parent);
+    NoeudInstTantQue(NoeudSeqInst* parent, NoeudFonction* func);
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstTantQue() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
@@ -158,7 +188,7 @@ class NoeudInstPour : public NoeudBoucle{
 // Classe pour représenter un noeud "instruction tant que"
 //  et ses 2 fils : la condition du tant que et la séquence d'instruction associée
   public:
-    NoeudInstPour(NoeudSeqInst* parent);
+    NoeudInstPour(NoeudSeqInst* parent, NoeudFonction* func);
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstPour() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
@@ -171,7 +201,7 @@ class NoeudInstPour : public NoeudBoucle{
 
 class NoeudInstDoWhile : public NoeudBoucle{
 public:
-    NoeudInstDoWhile(NoeudSeqInst* parent);
+    NoeudInstDoWhile(NoeudSeqInst* parent, NoeudFonction* func);
     ~NoeudInstDoWhile() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
     void init(Noeud* condition);
@@ -181,7 +211,7 @@ private:
 
 class NoeudInstUntil : public NoeudBoucle{
 public:
-    NoeudInstUntil(NoeudSeqInst* parent);
+    NoeudInstUntil(NoeudSeqInst* parent, NoeudFonction* func);
     ~NoeudInstUntil() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
     void init(Noeud* condition);
@@ -190,14 +220,14 @@ private:
 };
 class NoeudInstPrint : public Noeud{
 public:
-    NoeudInstPrint(NoeudSeqInst* parent);
+    NoeudInstPrint(NoeudSeqInst* parent, NoeudFonction* func);
     ~NoeudInstPrint() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
     void ajoute(Noeud* val);
 private:
     std::vector<Noeud*> m_vals;
 };
-class NoeudInstScanI{
+/*class NoeudInstScanI{
 public:
     NoeudInstScanI();
     ~NoeudInstScanI() {} // A cause du destructeur virtuel de la classe Noeud
@@ -224,6 +254,6 @@ public:
     void ajouter(Noeud* var);
 private:
     Noeud* m_affect;
-};
+};*/
 
 #endif /* ARBREABSTRAIT_H */

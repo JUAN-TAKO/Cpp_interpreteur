@@ -1,10 +1,12 @@
 #ifndef TABLESYMBOLES_H
 #define TABLESYMBOLES_H
 
-#include "SymboleValue.h"
 #include <vector>
 #include <iostream>
-using namespace std;
+#include "Symbole.h"
+class SymboleValue;
+
+
 class TableSymboles {
 public:
     TableSymboles(); // Construit une table vide de pointeurs sur des symboles valués
@@ -17,7 +19,7 @@ public:
     inline unsigned int getTaille() const {
         return m_table.size();
     } // Taille de la table des symboles valués
-    /*
+    
     inline const SymboleValue & operator[](unsigned int i) const {
         return *m_table[i];
     } // accès au ième SymboleValue de la table*/
@@ -28,4 +30,6 @@ private:
     std::vector<SymboleValue*> m_table; // La table des symboles valués, triée sur la chaine
     // (on aurait dû plus judicieusement utiliser map au lieu de vector)
 };
+#include "SymboleValue.h"
 #endif /* TABLESYMBOLES_H */
+
