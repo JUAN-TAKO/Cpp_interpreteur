@@ -9,4 +9,5 @@ end
 
 def main()
   print(factorial(4));
+  return 0;
 end

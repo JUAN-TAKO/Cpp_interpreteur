@@ -21,17 +21,14 @@ int main(int argc, char* argv[]) {
     //cout << endl << "================ Table des symboles avant exécution : " << interpreteur.getArbre();
     cout << endl << "================ Execution de l'arbre" << endl;
     // On exécute le programme si l'arbre n'est pas vide
-    if (interpreteur.getArbre() != nullptr){
-      SymboleValue* main = interpreteur.getArbre()->cherche(Symbole("main"));
-      if(!main){
-        std::cout << "Pas de fonction main" << std::endl;
-        std::cout << interpreteur.getArbre()->getTable() << std::endl;
-      }
-      else{
-        Noeud* f = ((Noeud*)main->getValue());
-        f->executer();
-      }
+    Value ret = interpreteur.executer();
+    if((int)ret == 0){
+        std::cout << "Succes" << std::endl;
     }
+    else{
+        std::cout << "Erreur" << std::endl;
+    }
+   
     // Et on vérifie qu'il a fonctionné en regardant comment il a modifié la table des symboles
     //cout << endl << "================ Table des symboles apres exécution : " << interpreteur->getArbre();
   } catch (InterpreteurException & e) {

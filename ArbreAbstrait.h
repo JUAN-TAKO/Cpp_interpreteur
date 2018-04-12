@@ -15,6 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 class NoeudSeqInst;
 class Value;
+class NoeudFonction;
 
 class Noeud {
 // Classe abstraite dont dériveront toutes les classes servant à représenter l'arbre abstrait
@@ -91,35 +92,36 @@ class NoeudOperateurBinaire : public Noeud {
 
 class NoeudFonction : public NoeudSeqInst{
 friend class NoeudCall;
+friend class NoeudInstReturn;
 public:
-  NoeudFonction(NoeudSeqInst* parent);
+  NoeudFonction(NoeudSeqInst* parent, TableSymboles* globals);
   ~NoeudFonction(){}
   Value executer();
-  void ajoute(Symbole s, bool parametre);
-  Symbole& chercheAjoute(Symbole s);
+  void ajoute(Symbole s, bool parametre = false);
+  Symbole chercheAjoute(Symbole s);
   TableSymboles& getTable(){return m_stack.top();}
   void push() {m_stack.push(TableSymboles());}
 private:
   std::stack<TableSymboles> m_stack;
   std::vector<Symbole> m_variables;
   std::vector<Symbole*> m_parametres;
-  TableSymbole* m_globals;
+  TableSymboles* m_globals;
   Noeud* returnValue;
 };
 
 class NoeudVariable : public Noeud{
 public:
-  NoeudVariable(NoeudSeqInst* parent, NoeudFonction* func, Symbole s) : Noeud(parent, func, globals), m_symbole(s){}
+  NoeudVariable(NoeudSeqInst* parent, NoeudFonction* func, Symbole s) : Noeud(parent, func), m_symbole(s){}
   ~NoeudVariable(){}
   Value executer();
 
 private:
   Symbole m_symbole;
-}
+};
 
 class NoeudCall : public Noeud{
 public:
-  NoeudCall(NoeudSeqInst* parent, NoeudFonction* func, Noeud* target_func) : Noeud(parent, func, globals), m_target_func(target_func){}
+  NoeudCall(NoeudSeqInst* parent, NoeudFonction* func, Noeud* target_func) : Noeud(parent, func), m_target_func(target_func){}
   ~NoeudCall(){}
   Value executer();
   void ajoute(Noeud* n);

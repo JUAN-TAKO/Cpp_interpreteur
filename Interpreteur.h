@@ -20,6 +20,7 @@ public:
 	                                    // Sinon, une exception sera levée
 
 	inline NoeudSeqInst* getArbre () const { return m_arbre; }                    // accesseur
+        Value executer();
 	
 private:
     Lecteur        m_lecteur;  // Le lecteur de symboles utilisé pour analyser le fichier
@@ -28,6 +29,7 @@ private:
     TableSymboles m_globals;
     // Implémentation de la grammaire
     NoeudSeqInst*  programme();   //   <programme> ::= procedure principale() <seqInst> finproc FIN_FICHIER
+    
     NoeudSeqInst*  seqInst(NoeudSeqInst* sequence);	   //     <seqInst> ::= <inst> { <inst> }
     Noeud*  inst(NoeudSeqInst* parent);	   //        <inst> ::= <affectation> ; | <instSi> | <instTantQue> 
     Noeud*  affectationOuCall(NoeudSeqInst* parent); // <affectation> ::= <variable> = <expression>
