@@ -8,7 +8,9 @@ elseif
 while
 repeat
 until
-scan
+scanI
+scanF
+scanS
 print
 return
 break
@@ -24,8 +26,11 @@ break
 -
 --
 *
+*=
 /
+/=
 %
+%=
 ==
 !=
 <

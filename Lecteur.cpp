@@ -121,6 +121,11 @@ string Lecteur::motSuivant() {
       s = s + m_lecteurCar.getCaractere();
       m_lecteurCar.avancer();
     }
+    else if (m_lecteurCar.getCaractere() == '=') {
+      // pour lire les symbole +=
+      s = s + m_lecteurCar.getCaractere();
+      m_lecteurCar.avancer();
+    }
   }
   
   else if (m_lecteurCar.getCaractere() == '-') {
@@ -131,8 +136,44 @@ string Lecteur::motSuivant() {
       s = s + m_lecteurCar.getCaractere();
       m_lecteurCar.avancer();
     }
+    else if (m_lecteurCar.getCaractere() == '=') {
+      // pour lire les symbole -=
+      s = s + m_lecteurCar.getCaractere();
+      m_lecteurCar.avancer();
+    }
   }
   
+  else if (m_lecteurCar.getCaractere() == '*') {
+    s = s + m_lecteurCar.getCaractere();
+    m_lecteurCar.avancer();
+    if (m_lecteurCar.getCaractere() == '=') {
+      // pour lire les symbole *=
+      s = s + m_lecteurCar.getCaractere();
+      m_lecteurCar.avancer();
+    }
+  }
+
+  else if (m_lecteurCar.getCaractere() == '/') {
+    s = s + m_lecteurCar.getCaractere();
+    m_lecteurCar.avancer();
+    if (m_lecteurCar.getCaractere() == '=') {
+      // pour lire les symbole /=
+      s = s + m_lecteurCar.getCaractere();
+      m_lecteurCar.avancer();
+    }
+  }
+
+  else if (m_lecteurCar.getCaractere() == '%') {
+    s = s + m_lecteurCar.getCaractere();
+    m_lecteurCar.avancer();
+    if (m_lecteurCar.getCaractere() == '=') {
+      // pour lire les symbole %=
+      s = s + m_lecteurCar.getCaractere();
+      m_lecteurCar.avancer();
+    }
+  }
+
+
   else if (m_lecteurCar.getCaractere() != EOF)
     // c'est un caractere spécial
   {

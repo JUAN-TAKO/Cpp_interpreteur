@@ -23,6 +23,7 @@ class Noeud {
 public:
   Noeud(NoeudSeqInst* parent, NoeudFonction* func) : m_parent(parent), m_func(func){}
   virtual Value executer() = 0 ; // Méthode pure (non implémentée) qui rend la classe abstraite
+  virtual std::ostream& convertir_python(std::ostream& out, int& indent) = 0;
   virtual void ajoute(Noeud* instruction) { throw OperationInterditeException("Ajout non supporté"); }
   virtual ~Noeud() {} // Présence d'un destructeur virtuel conseillée dans les classes abstraites
   NoeudSeqInst* getSeq(){return m_parent;}
@@ -44,6 +45,7 @@ public:
      NoeudSeqInst(NoeudSeqInst* parent, NoeudFonction* func);   // Construit une séquence d'instruction vide
     ~NoeudSeqInst() {} // A cause du destructeur virtuel de la classe Noeud
     virtual Value executer();    // Exécute chaque instruction de la séquence
+    virtual std::ostream& convertir_python(std::ostream& out, int& indent);
     void ajoute(Noeud* instruction);  // Ajoute une instruction à la séquence
     void breakExec();
 protected:
@@ -60,17 +62,31 @@ public:
 private:
 
 };
+
+class NoeudVariable : public Noeud{
+public:
+  NoeudVariable(NoeudSeqInst* parent, NoeudFonction* func, Symbole s) : Noeud(parent, func), m_symbole(s){}
+  ~NoeudVariable(){}
+  Value executer();
+  std::ostream& convertir_python(std::ostream& out, int& indent);
+  void setValue(Value v);
+  Symbole getSymbole(){return m_symbole;}
+
+private:
+  Symbole m_symbole;
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 class NoeudAffectation : public Noeud {
 // Classe pour représenter un noeud "affectation"
 //  composé de 2 fils : la variable et l'expression qu'on lui affecte
   public:
-     NoeudAffectation(NoeudSeqInst* parent, NoeudFonction* func, Noeud* variable, Noeud* expression); // construit une affectation
+     NoeudAffectation(NoeudSeqInst* parent, NoeudFonction* func, NoeudVariable* variable, Noeud* expression); // construit une affectation
     ~NoeudAffectation() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();        // Exécute (évalue) l'expression et affecte sa valeur à la variable
-
+    std::ostream& convertir_python(std::ostream& out, int& indent);
   private:
-    Noeud* m_variable;
+    NoeudVariable* m_variable;
     Noeud* m_expression;
 };
 
@@ -83,7 +99,7 @@ class NoeudOperateurBinaire : public Noeud {
     // Construit une opération binaire : operandeGauche operateur OperandeDroit
    ~NoeudOperateurBinaire() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();            // Exécute (évalue) l'opération binaire)
-
+    std::ostream& convertir_python(std::ostream& out, int& indent);
   private:
     Symbole m_operateur;
     Noeud*  m_operandeGauche;
@@ -93,37 +109,35 @@ class NoeudOperateurBinaire : public Noeud {
 class NoeudFonction : public NoeudSeqInst{
 friend class NoeudCall;
 friend class NoeudInstReturn;
+friend class SymboleValue;
 public:
-  NoeudFonction(NoeudSeqInst* parent, TableSymboles* globals);
+  NoeudFonction(NoeudSeqInst* parent, TableSymboles* globals, Symbole self);
   ~NoeudFonction(){}
   Value executer();
+  std::ostream& convertir_python(std::ostream& out, int& indent);
   void ajoute(Symbole s, bool parametre = false);
   Symbole chercheAjoute(Symbole s);
   TableSymboles& getTable(){return m_stack.top();}
+  TableSymboles* getGlobals(){return m_globals;}
   void push() {m_stack.push(TableSymboles());}
 private:
+  SymboleValue* getReturn();
   std::stack<TableSymboles> m_stack;
   std::vector<Symbole> m_variables;
-  std::vector<Symbole*> m_parametres;
+  unsigned int m_parametres;
   TableSymboles* m_globals;
   Noeud* returnValue;
+  Symbole m_self;
 };
 
-class NoeudVariable : public Noeud{
-public:
-  NoeudVariable(NoeudSeqInst* parent, NoeudFonction* func, Symbole s) : Noeud(parent, func), m_symbole(s){}
-  ~NoeudVariable(){}
-  Value executer();
 
-private:
-  Symbole m_symbole;
-};
 
 class NoeudCall : public Noeud{
 public:
   NoeudCall(NoeudSeqInst* parent, NoeudFonction* func, Noeud* target_func) : Noeud(parent, func), m_target_func(target_func){}
   ~NoeudCall(){}
   Value executer();
+  std::ostream& convertir_python(std::ostream& out, int& indent);
   void ajoute(Noeud* n);
 private:
   std::vector<Noeud*> m_args;
@@ -135,6 +149,7 @@ public:
   NoeudInstReturn(NoeudSeqInst* parent, NoeudFonction* func, Noeud* returnValue);
   ~NoeudInstReturn(){}
   Value executer();
+  std::ostream& convertir_python(std::ostream& out, int& indent);
 private:
   Noeud* m_return;
 };
@@ -144,6 +159,7 @@ public:
   NoeudInstBreak(NoeudSeqInst* parent, NoeudFonction* func);
   ~NoeudInstBreak(){}
   Value executer();
+  std::ostream& convertir_python(std::ostream& out, int& indent);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -155,6 +171,7 @@ class NoeudInstSiRiche : public Noeud{
      // Construit une "instruction si" avec sa condition et sa séquence d'instruction
    ~NoeudInstSiRiche() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    std::ostream& convertir_python(std::ostream& out, int& indent);
     void ajoute(Noeud* instruction);
 
   private:
@@ -168,6 +185,7 @@ public:
     NoeudInstRepeter(NoeudSeqInst* parent, NoeudFonction* func);
     ~NoeudInstRepeter() {}
     Value executer();
+    std::ostream& convertir_python(std::ostream& out, int& indent);
     void init(Noeud* condition);
 private:
     Noeud*  m_condition;
@@ -181,6 +199,7 @@ class NoeudInstTantQue : public NoeudBoucle{
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstTantQue() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    std::ostream& convertir_python(std::ostream& out, int& indent);
     void init(Noeud* condition);
   private:
     Noeud*  m_condition;
@@ -194,6 +213,7 @@ class NoeudInstPour : public NoeudBoucle{
      // Construit une "instruction tant que" avec sa condition et sa séquence d'instruction
    ~NoeudInstPour() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    std::ostream& convertir_python(std::ostream& out, int& indent);
     void init(Noeud* initialisation, Noeud* condition, Noeud* iteration);
   private:
     Noeud*  m_initialisation;
@@ -206,6 +226,7 @@ public:
     NoeudInstDoWhile(NoeudSeqInst* parent, NoeudFonction* func);
     ~NoeudInstDoWhile() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    std::ostream& convertir_python(std::ostream& out, int& indent);
     void init(Noeud* condition);
 private:
     Noeud* m_condition;
@@ -216,6 +237,7 @@ public:
     NoeudInstUntil(NoeudSeqInst* parent, NoeudFonction* func);
     ~NoeudInstUntil() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    std::ostream& convertir_python(std::ostream& out, int& indent);
     void init(Noeud* condition);
 private:
     Noeud* m_condition;
@@ -225,37 +247,38 @@ public:
     NoeudInstPrint(NoeudSeqInst* parent, NoeudFonction* func);
     ~NoeudInstPrint() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
+    std::ostream& convertir_python(std::ostream& out, int& indent);
     void ajoute(Noeud* val);
 private:
     std::vector<Noeud*> m_vals;
 };
-/*class NoeudInstScanI{
+class NoeudInstScanI : public Noeud{
 public:
-    NoeudInstScanI();
+    NoeudInstScanI(NoeudSeqInst* parent, NoeudFonction* func, NoeudVariable* var);
     ~NoeudInstScanI() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
-    void ajouter(Noeud* var);
+    std::ostream& convertir_python(std::ostream& out, int& indent);
 private:
-    Noeud* m_affect;
+    NoeudVariable* m_var;
     
 };
-class NoeudInstScanF{
+class NoeudInstScanF : public Noeud{
 public:
-    NoeudInstScanF();
+    NoeudInstScanF(NoeudSeqInst* parent, NoeudFonction* func, NoeudVariable* var);
     ~NoeudInstScanF() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
-    void ajouter(Noeud* var);
+    std::ostream& convertir_python(std::ostream& out, int& indent);
 private:
-    Noeud* m_affect;
+    NoeudVariable* m_var;
 };
-class NoeudInstScanS{
+class NoeudInstScanS : public Noeud{
 public:
-    NoeudInstScanS();
+    NoeudInstScanS(NoeudSeqInst* parent, NoeudFonction* func, NoeudVariable* var);
     ~NoeudInstScanS() {} // A cause du destructeur virtuel de la classe Noeud
     Value executer();  // Exécute l'instruction si : si condition vraie on exécute la séquence
-    void ajouter(Noeud* var);
+    std::ostream& convertir_python(std::ostream& out, int& indent);
 private:
-    Noeud* m_affect;
-};*/
+    NoeudVariable* m_var;
+};
 
 #endif /* ARBREABSTRAIT_H */

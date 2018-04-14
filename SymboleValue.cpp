@@ -27,6 +27,15 @@ Value SymboleValue::executer() {
   return m_valeur;
 }
 
+std::ostream& SymboleValue::convertir_python(std::ostream& out, int& indent){
+  if(m_valeur.getType() == 2)
+    out << "\"" << (std::string)m_valeur << "\"";
+  else if(m_valeur.getType() == 3)
+    out << ((NoeudFonction*)m_valeur)->m_self.getChaine();
+  else
+    out << m_valeur;
+  return out;
+}
 ostream & operator<<(ostream & cout, const SymboleValue & symbole) {
   cout << (Symbole) symbole << "\t\t - Valeur=";
   

@@ -3,9 +3,10 @@
 using namespace std;
 
 Interpreteur::Interpreteur(ifstream & fichier) :
-m_lecteur(fichier){}
+m_lecteur(fichier), m_valid(false){}
 
 void Interpreteur::analyse() {
+  m_valid = true;
   programme(); // on lance l'analyse de la première règle
 }
 
@@ -40,22 +41,38 @@ void Interpreteur::erreur(const string & message) const throw (SyntaxeException)
 NoeudSeqInst* Interpreteur::programme() {
   // <programme> ::= procedure principale() <seqInst> finproc FIN_FICHIER
     m_arbre = new NoeudSeqInst(nullptr, nullptr);
-    while(m_lecteur.getSymbole() == "def")
+    while(m_lecteur.getSymbole() == "def"){
         m_arbre->ajoute(fonction(m_arbre));
+        m_func = nullptr;
+    }
+    
     tester("<FINDEFICHIER>");
   return m_arbre;
 }
 
 Value Interpreteur::executer(){
+    if(!m_valid)
+      return -2;
     SymboleValue* main = m_globals.cherche(Symbole("main"));
     if(main){
-        NoeudFonction* nf = main->getValue();
-        NoeudCall* mainCall = new NoeudCall(nullptr, nullptr, nf);
+        //NoeudFonction* nf = main->getValue();
+        NoeudCall* mainCall = new NoeudCall(nullptr, nullptr, main);
         return mainCall->executer();
     }
     else{
         return -1;
     }
+}
+
+void Interpreteur::convertir_python(std::ostream& out){
+  if(!m_valid){
+    std::cout << "erreur de syntaxe, conversion impossible" << std::endl;
+    return;
+  }
+  int indent = -1;
+  out << std::setfill(' ');
+  m_arbre->convertir_python(out, indent);
+  out << "main()" << std::endl;
 }
 
 Noeud* Interpreteur::fonction(NoeudSeqInst* parent){
@@ -65,7 +82,7 @@ Noeud* Interpreteur::fonction(NoeudSeqInst* parent){
         funcV = m_globals.chercheAjoute(m_lecteur.getSymbole());
     }
     testerEtAvancer("<VARIABLE>");
-    NoeudFonction* func = new NoeudFonction(parent, &m_globals);
+    NoeudFonction* func = new NoeudFonction(parent, &m_globals, funcV->getChaine());
     testerEtAvancer("(");
     if(m_lecteur.getSymbole() == "<VARIABLE>"){
       func->ajoute(m_lecteur.getSymbole(), true);
@@ -89,13 +106,22 @@ Noeud* Interpreteur::fonction(NoeudSeqInst* parent){
 NoeudSeqInst* Interpreteur::seqInst(NoeudSeqInst* sequence) {
   // <seqInst> ::= <inst> { <inst> }
   do {
-    sequence->ajoute(inst(sequence));
+    try{
+
+      sequence->ajoute(inst(sequence));
+    }
+    catch(SyntaxeException e){
+      m_valid = false;
+      std::cout << e.what() << std::endl;
+    }
+  
   } while (m_lecteur.getSymbole() == "<VARIABLE>" || m_lecteur.getSymbole() == "if"    ||
            m_lecteur.getSymbole() == "while"      || m_lecteur.getSymbole() == "repeat"||
            m_lecteur.getSymbole() == "for"        || m_lecteur.getSymbole() == "until" ||
            m_lecteur.getSymbole() == "do"         || m_lecteur.getSymbole() == "print" ||
            m_lecteur.getSymbole() == "return"     || m_lecteur.getSymbole() == "break" ||
-           m_lecteur.getSymbole() == "scan");
+           m_lecteur.getSymbole() == "scanI"      || m_lecteur.getSymbole() == "scanF" ||
+           m_lecteur.getSymbole() == "scanS");
   // Tant que le symbole courant est un début possible d'instruction...
   // Il faut compléter cette condition chaque fois qu'on rajoute une nouvelle instruction
   return sequence;
@@ -104,7 +130,7 @@ NoeudSeqInst* Interpreteur::seqInst(NoeudSeqInst* sequence) {
 Noeud* Interpreteur::inst(NoeudSeqInst* parent) {
   // <inst> ::= <affectation>  ; | <instSi>
   if (m_lecteur.getSymbole() == "<VARIABLE>") {
-    Noeud *aoc = affectationOuCall(parent);
+    Noeud *aoc = variableOperation(parent);
     testerEtAvancer(";");
     return aoc;
   }
@@ -126,16 +152,15 @@ Noeud* Interpreteur::inst(NoeudSeqInst* parent) {
     return instReturn(parent);
   else if (m_lecteur.getSymbole() == "break")
     return instBreak(parent);
-  /*else if (m_lecteur.getSymbole() == "scan")
-    return instScan();*/
-
+  else if (m_lecteur.getSymbole() == "scanI" || m_lecteur.getSymbole() == "scanF" || m_lecteur.getSymbole() == "scanS")
+    return instScan(parent);
   // Compléter les alternatives chaque fois qu'on rajoute une nouvelle instruction
   else erreur("Instruction incorrecte");
   return nullptr;
 }
 
 Noeud* Interpreteur::instReturn(NoeudSeqInst* parent){
-  m_lecteur.avancer();
+  testerEtAvancer("return");
   Noeud* ex = expression(parent);
   testerEtAvancer(";");
   return new NoeudInstReturn(parent, m_func, ex);
@@ -146,15 +171,16 @@ Noeud* Interpreteur::instBreak(NoeudSeqInst* parent){
   return new NoeudInstBreak(parent, m_func);
 }
 Noeud* Interpreteur::affectation(NoeudSeqInst* parent, Symbole s){
-    Noeud* var = new NoeudVariable(parent, m_func, m_func->chercheAjoute(s));
+    if(!(s == "<VARIABLE>"))
+      erreur("Variable incrorrecte");
+    NoeudVariable* var = new NoeudVariable(parent, m_func, m_func->chercheAjoute(s));
+    testerEtAvancer("=");
     Noeud* ex = expression(parent);             // On mémorise l'expression trouvée  
-    m_lecteur.avancer();
-    testerEtAvancer(";");
     return new NoeudAffectation(parent, m_func, var, ex); // On renvoie un noeud affectation
 }
 
 Noeud* Interpreteur::call(NoeudSeqInst* parent, Symbole s){
-  Noeud* var = m_globals.cherche(s);
+    NoeudVariable* var = new NoeudVariable(parent, m_func, s);
     NoeudCall* c = new NoeudCall(parent, m_func, var);
     testerEtAvancer("(");
     if(!(m_lecteur.getSymbole() == ")")){
@@ -167,71 +193,133 @@ Noeud* Interpreteur::call(NoeudSeqInst* parent, Symbole s){
     testerEtAvancer(")");
     return c;
 }
-Noeud* Interpreteur::affectationOuCall(NoeudSeqInst* parent) {
+Noeud* Interpreteur::variableOperation(NoeudSeqInst* parent) {
   // <affectation> ::= <variable> = <expression> 
   tester("<VARIABLE>");
   Symbole s = m_lecteur.getSymbole();
-  //Noeud* var = (Noeud*)parent->chercheAjoute(m_lecteur.getSymbole()); // La variable est ajoutée à la table et on la mémorise
   m_lecteur.avancer();
+  NoeudVariable* var = new NoeudVariable(parent, m_func, s);
   if(m_lecteur.getSymbole() == "("){
     return call(parent, s);
   }
-  else{
+  else if(m_lecteur.getSymbole() == "="){
     return affectation(parent, s);
   }
-  
+  else if(m_lecteur.getSymbole() == "++"){
+    m_lecteur.avancer();
+    return new NoeudAffectation(parent, m_func, var, new NoeudOperateurBinaire(parent, m_func, Symbole("+"), var, m_globals.chercheAjoute(Symbole("1"))));
+  }
+  else if(m_lecteur.getSymbole() == "--"){
+    m_lecteur.avancer();
+    return new NoeudAffectation(parent, m_func, var, new NoeudOperateurBinaire(parent, m_func, Symbole("-"), var, m_globals.chercheAjoute(Symbole("1"))));
+  }
+  else if(m_lecteur.getSymbole() == "+="){
+    m_lecteur.avancer();
+    return new NoeudAffectation(parent, m_func, var, new NoeudOperateurBinaire(parent, m_func, Symbole("+"), var, expression(parent)));  
+  }
+  else if(m_lecteur.getSymbole() == "-="){
+    m_lecteur.avancer();
+    return new NoeudAffectation(parent, m_func, var, new NoeudOperateurBinaire(parent, m_func, Symbole("-"), var, expression(parent)));
+  }
+  else if(m_lecteur.getSymbole() == "*="){
+    m_lecteur.avancer();
+    return new NoeudAffectation(parent, m_func, var, new NoeudOperateurBinaire(parent, m_func, Symbole("*"), var, expression(parent)));
+  }
+  else if(m_lecteur.getSymbole() == "/="){
+    m_lecteur.avancer();
+    return new NoeudAffectation(parent, m_func, var, new NoeudOperateurBinaire(parent, m_func, Symbole("/"), var, expression(parent)));
+  }
+  else if(m_lecteur.getSymbole() == "%="){
+    m_lecteur.avancer();
+    return new NoeudAffectation(parent, m_func, var, new NoeudOperateurBinaire(parent, m_func, Symbole("%"), var, expression(parent)));
+  }
+  else{
+    return var;
+  }
+
 }
 
 
 Noeud* Interpreteur::expression(NoeudSeqInst* parent) {
-  // <expression> ::= <facteur> { <opBinaire> <facteur> }
-  //  <opBinaire> ::= + | - | *  | / | < | > | <= | >= | == | != | et | ou
-  Noeud* fact = facteur(parent);
-  while ( m_lecteur.getSymbole() == "+"  || m_lecteur.getSymbole() == "-"  ||
-          m_lecteur.getSymbole() == "*"  || m_lecteur.getSymbole() == "/"  ||
-          m_lecteur.getSymbole() == "%"  || m_lecteur.getSymbole() == "xor"||
-          m_lecteur.getSymbole() == "<"  || m_lecteur.getSymbole() == "<=" ||
-          m_lecteur.getSymbole() == ">"  || m_lecteur.getSymbole() == ">=" ||
-          m_lecteur.getSymbole() == "==" || m_lecteur.getSymbole() == "!=" ||
-          m_lecteur.getSymbole() == "and"|| m_lecteur.getSymbole() == "or"   ) {
-    Symbole operateur = m_lecteur.getSymbole(); // On mémorise le symbole de l'opérateur
+
+  Noeud* t = terme(parent);
+  while(m_lecteur.getSymbole() == "+" || m_lecteur.getSymbole() == "-"){
+    Symbole operateur = m_lecteur.getSymbole();
     m_lecteur.avancer();
-    Noeud* factDroit = facteur(parent); // On mémorise l'opérande droit
-    fact = new NoeudOperateurBinaire(parent, m_func, operateur, fact, factDroit); // Et on construuit un noeud opérateur binaire
+    Noeud* termeDroit = terme(parent);
+    t = new NoeudOperateurBinaire(parent, m_func, operateur, t, termeDroit);
   }
-  return fact; // On renvoie fact qui pointe sur la racine de l'expression
+  return t;
+}
+
+Noeud* Interpreteur::terme(NoeudSeqInst* parent){
+  Noeud* fact = facteur(parent);
+  while(m_lecteur.getSymbole() == "*" || m_lecteur.getSymbole() == "/" || m_lecteur.getSymbole() == "%"){
+    Symbole operateur = m_lecteur.getSymbole();
+    m_lecteur.avancer();
+    Noeud* facteurDroit = facteur(parent);
+    fact = new NoeudOperateurBinaire(parent, m_func, operateur, fact, facteurDroit);
+  }
+  return fact;
 }
 
 Noeud* Interpreteur::facteur(NoeudSeqInst* parent) {
   // <facteur> ::= <entier> | <variable> | - <facteur> | non <facteur> | ( <expression> )
   Noeud* fact = nullptr;
-  if (m_lecteur.getSymbole() == "<ENTIER>" || m_lecteur.getSymbole() == "<REEL>" || m_lecteur.getSymbole() == "<CHAINE>") {
+  if (m_lecteur.getSymbole() == "<LITTERAL>") {
     fact = m_globals.chercheAjoute(m_lecteur.getSymbole()); // on ajoute la variable ou l'entier à la table
     m_lecteur.avancer();
   } else if(m_lecteur.getSymbole() == "<VARIABLE>"){
-    Symbole s = m_lecteur.getSymbole();
-    m_lecteur.avancer();
-    if(m_lecteur.getSymbole() == "("){
-      fact = call(parent, s);
-    }
-    else{
-      fact = new NoeudVariable(parent, m_func, m_func->chercheAjoute(s));
-    }
+    fact = variableOperation(parent);
   } else if (m_lecteur.getSymbole() == "-") { // - <facteur>
     m_lecteur.avancer();
     // on représente le moins unaire (- facteur) par une soustraction binaire (0 - facteur)
-    fact = new NoeudOperateurBinaire(parent, m_func, Symbole("-"), m_globals.chercheAjoute(Symbole("0")), facteur(parent));
+    fact = new NoeudOperateurBinaire(parent, m_func, Symbole("-"), m_globals.chercheAjoute(Symbole("0")), expBool(parent));
   } else if (m_lecteur.getSymbole() == "not") { // non <facteur>
     m_lecteur.avancer();
-    fact = new NoeudOperateurBinaire(parent, m_func, Symbole("not"), m_globals.chercheAjoute(Symbole("0")), facteur(parent));
+    fact = new NoeudOperateurBinaire(parent, m_func, Symbole("not"), m_globals.chercheAjoute(Symbole("0")), expBool(parent));
   } else if (m_lecteur.getSymbole() == "(") { // expression parenthésée
     m_lecteur.avancer();
-    fact = expression(parent);
+    fact = expBool(parent);
     testerEtAvancer(")");
   } else
     erreur("Facteur incorrect");
   return fact;
 }
+
+Noeud* Interpreteur::expBool(NoeudSeqInst* parent){
+  Noeud* rel = relationEt(parent);
+  while(m_lecteur.getSymbole() == "or"){
+    m_lecteur.avancer();
+    Noeud* relationDroite = relationEt(parent);
+    rel = new NoeudOperateurBinaire(parent, m_func, Symbole("or"), rel, relationDroite);
+  }
+  return rel;
+}
+
+Noeud* Interpreteur::relationEt(NoeudSeqInst* parent){
+  Noeud* rel = relation(parent);
+  while(m_lecteur.getSymbole() == "and"){
+    m_lecteur.avancer();
+    Noeud* relationDroite = relation(parent);
+    rel = new NoeudOperateurBinaire(parent, m_func, Symbole("and"), rel, relationDroite);
+  }
+  return rel;
+}
+
+Noeud* Interpreteur::relation(NoeudSeqInst* parent){
+  Noeud* expr = expression(parent);
+  while(m_lecteur.getSymbole() == "==" || m_lecteur.getSymbole() == "!=" ||
+        m_lecteur.getSymbole() == "<"  || m_lecteur.getSymbole() == "<=" ||
+        m_lecteur.getSymbole() == ">"  || m_lecteur.getSymbole() == ">="){
+          Symbole operateur = m_lecteur.getSymbole();
+          m_lecteur.avancer();
+          Noeud* expressionDroite = expression(parent);
+          expr = new NoeudOperateurBinaire(parent, m_func, operateur, expr, expressionDroite);
+        }
+  return expr;
+}
+
 
 Noeud* Interpreteur::instPour(NoeudSeqInst* parent){
     testerEtAvancer("for");
@@ -243,27 +331,32 @@ Noeud* Interpreteur::instPour(NoeudSeqInst* parent){
       testerEtAvancer("(");
       if(m_lecteur.getSymbole() == ";")
         init = m_globals.chercheAjoute(Symbole("0"));
-      else
-        init = affectationOuCall(pour);
+      else{
+        Symbole s = m_lecteur.getSymbole();
+        m_lecteur.avancer();
+        init = affectation(pour, s);
+      }
+        
         
       testerEtAvancer(";");
       
       if(m_lecteur.getSymbole() == ";")
         cond = m_globals.chercheAjoute(Symbole("1"));
       else
-        cond = expression(pour);
+        cond = expBool(pour);
       
       testerEtAvancer(";");
       
       if(m_lecteur.getSymbole() == ")")
         iter = m_globals.chercheAjoute(Symbole("0"));
       else
-        iter = affectationOuCall(pour);
+        iter = variableOperation(pour);
+        
       testerEtAvancer(")");
     }
     else{
       tester("<VARIABLE>");
-      Noeud* var;
+      NoeudVariable* var;
       Noeud* i;
       var = new NoeudVariable(parent, m_func, m_func->chercheAjoute(m_lecteur.getSymbole()));
       m_lecteur.avancer();
@@ -304,7 +397,7 @@ Noeud* Interpreteur::instTantQue(NoeudSeqInst* parent){
     NoeudInstTantQue* tq = new NoeudInstTantQue(parent, m_func);
     testerEtAvancer("while");
     testerEtAvancer("(");
-    Noeud* cond = expression(tq);
+    Noeud* cond = expBool(tq);
     testerEtAvancer(")");
     tq->init(cond);
     seqInst(tq);
@@ -319,7 +412,7 @@ Noeud* Interpreteur::instRepeter(NoeudSeqInst* parent){
     seqInst(rep);
     testerEtAvancer("until");
     testerEtAvancer("(");
-    Noeud* cond = expression(rep);
+    Noeud* cond = expBool(rep);
     testerEtAvancer(")");
     rep->init(cond);
     return rep;
@@ -331,7 +424,7 @@ Noeud* Interpreteur::instDoWhile(NoeudSeqInst* parent){
     seqInst(dw);
     testerEtAvancer("while");
     testerEtAvancer("(");
-    Noeud* cond = expression(dw);
+    Noeud* cond = expBool(dw);
     testerEtAvancer(")");
     dw->init(cond);
     return dw;
@@ -341,7 +434,7 @@ Noeud* Interpreteur::instUntil(NoeudSeqInst* parent){
     NoeudInstUntil* un = new NoeudInstUntil(parent, m_func);
     testerEtAvancer("until");
     testerEtAvancer("(");
-    Noeud* cond = expression(un);
+    Noeud* cond = expBool(un);
     testerEtAvancer(")");
     seqInst(un);
     testerEtAvancer("end");
@@ -363,24 +456,34 @@ Noeud* Interpreteur::instPrint(NoeudSeqInst* parent){
     testerEtAvancer(";");
     return p;
 }
-/*
-Noeud* Interpreteur::instScan(){
-    testerEtAvancer("scan");
+
+Noeud* Interpreteur::instScan(NoeudSeqInst* parent){
+    Symbole s = m_lecteur.getSymbole();
+    m_lecteur.avancer();
     testerEtAvancer("(");
     tester("<VARIABLE>");
-    Noeud* var = m_table.chercheAjoute(m_lecteur.getSymbole());
+    Symbole var = m_func->chercheAjoute(m_lecteur.getSymbole());
+    m_lecteur.avancer();
     testerEtAvancer(")");
     testerEtAvancer(";");
-    return new NoeudInstScan(var);
+    if(s == "scanI")
+      return new NoeudInstScanI(parent, m_func, new NoeudVariable(parent, m_func, var));
+    else if(s == "scanF")
+      return new NoeudInstScanF(parent, m_func, new NoeudVariable(parent, m_func, var));
+    else if(s == "scanS")
+      return new NoeudInstScanS(parent, m_func, new NoeudVariable(parent, m_func, var));
+    else
+      erreur("instruction scan attendue");
+      return nullptr;
+    
 }
-*/
 Noeud* Interpreteur::instSiRiche(NoeudSeqInst* parent){
     NoeudInstSiRiche* si = new NoeudInstSiRiche(parent, m_func);
     NoeudSeqInst* seq = new NoeudSeqInst(parent, m_func);
     
     testerEtAvancer("if");
     testerEtAvancer("(");
-    Noeud* cond = expression(seq);
+    Noeud* cond = expBool(seq);
     testerEtAvancer(")");
     seqInst(seq);
     si->ajoute(seq);
@@ -390,7 +493,7 @@ Noeud* Interpreteur::instSiRiche(NoeudSeqInst* parent){
         seq = new NoeudSeqInst(parent, m_func);
         testerEtAvancer("elseif");
         testerEtAvancer("(");
-        cond = expression(seq);
+        cond = expBool(seq);
         testerEtAvancer(")");
         seqInst(seq);
         si->ajoute(seq);

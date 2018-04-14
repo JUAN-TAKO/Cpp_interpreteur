@@ -3,48 +3,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudSeqInst
 ////////////////////////////////////////////////////////////////////////////////
-/*
-SymboleValue* NoeudSeqInst::cherche(const Symbole& s, bool except){
 
-  NoeudSeqInst* p = getSeq();
-  
-  SymboleValue* val = nullptr;
-  TableSymboles* table = &getTable();
-  if(!except){
-    try{
-      val = table->cherche(s);
-      return val;
-    }
-    catch(...){}
-  }
-  else{
-    val = table->cherche(s);
-    return val;
-  }
-  while(p != nullptr){
-    table = &(p->getTable());
-    if(!except){
-      try{
-        val = table->cherche(s);
-        return val;
-      }
-      catch(...){}
-    }else{
-      val = table->cherche(s);
-      return val;
-    }
-    p = p->getSeq();
-  }
-  return nullptr;
+std::string tab(int n){
+  if(n < 0)
+    n = 0;
+  return std::string(n, '\t');
 }
-SymboleValue* NoeudSeqInst::chercheAjoute(Symbole s){
-  SymboleValue* v = cherche(s);
-  if(!v){
-    v = getTable().chercheAjoute(s);
-  }
-  return v;
-}
-*/
 NoeudSeqInst::NoeudSeqInst(NoeudSeqInst* parent, NoeudFonction* func) : Noeud(parent, func), exec(true){}
 
 Value NoeudSeqInst::executer() {
@@ -62,6 +26,14 @@ void NoeudSeqInst::ajoute(Noeud* instruction) {
   }
 }
 
+std::ostream& NoeudSeqInst::convertir_python(std::ostream& out, int& indent){
+  out << tab(++indent);
+  for (unsigned int i = 0; i < m_instructions.size(); i++){
+    m_instructions[i]->convertir_python(out, indent);
+    out << std::endl << tab(indent);
+  }
+  return out << std::endl << tab(--indent);
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstReturn
 ////////////////////////////////////////////////////////////////////////////////
@@ -69,17 +41,20 @@ void NoeudSeqInst::ajoute(Noeud* instruction) {
 
 NoeudInstReturn::NoeudInstReturn(NoeudSeqInst* parent, NoeudFonction* func, Noeud* returnValue) : Noeud(parent, func), m_return(returnValue){}
 Value NoeudInstReturn::executer(){
+  Value v = m_return->executer();
+  getFunc()->getReturn()->setValeur(v);
   NoeudSeqInst* p = getSeq();
   while(p->getSeq()->getSeq() != nullptr){
     p->breakExec();
     p = p->getSeq();
   }
   p->breakExec();
-  Value v = m_return->executer();
-  getFunc()->m_globals->chercheAjoute(Symbole("__func_return_val__"))->setValeur(v);
   return 0;
 }
-
+std::ostream& NoeudInstReturn::convertir_python(std::ostream& out, int& indent){
+  out << "return ";
+  return m_return->convertir_python(out, indent);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstBreak
@@ -95,18 +70,25 @@ Value NoeudInstBreak::executer(){
   p->breakExec();
   return 0;
 }
-
+std::ostream& NoeudInstBreak::convertir_python(std::ostream& out, int& indent){
+  return out << "break";
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudAffectation
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudAffectation::NoeudAffectation(NoeudSeqInst* parent, NoeudFonction* func, Noeud* variable, Noeud* expression)
+NoeudAffectation::NoeudAffectation(NoeudSeqInst* parent, NoeudFonction* func, NoeudVariable* variable, Noeud* expression)
 : Noeud(parent, func), m_variable(variable), m_expression(expression){}
 
 Value NoeudAffectation::executer() {
   Value valeur = m_expression->executer(); // On exécute (évalue) l'expression
-  ((SymboleValue*) m_variable)->setValeur(valeur); // On affecte la variable
-  return 0; // La valeur renvoyée ne représente rien !
+  m_variable->setValue(valeur); // On affecte la variable
+  return valeur; // La valeur renvoyée ne représente rien !
+}
+
+std::ostream& NoeudAffectation::convertir_python(std::ostream& out, int& indent){
+  out << m_variable->getSymbole().getChaine() << " = ";
+  return m_expression->convertir_python(out, indent);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -119,7 +101,8 @@ NoeudOperateurBinaire::NoeudOperateurBinaire(NoeudSeqInst* parent, NoeudFonction
 Value NoeudOperateurBinaire::executer() {
   Value og, od, valeur;
   if (m_operandeGauche != nullptr) og = m_operandeGauche->executer(); // On évalue l'opérande gauche
-  if (m_operandeDroit != nullptr) od = m_operandeDroit->executer(); // On évalue l'opérande droit
+  if (m_operandeDroit != nullptr)
+    od = m_operandeDroit->executer(); // On évalue l'opérande droit
 
   // Et on combine les deux opérandes en fonctions de l'opérateur
   if (this->m_operateur == "+") valeur = (og + od);
@@ -148,16 +131,23 @@ Value NoeudOperateurBinaire::executer() {
   return valeur; // On retourne la valeur calculée
 }
 
+std::ostream& NoeudOperateurBinaire::convertir_python(std::ostream& out, int& indent){
+  m_operandeGauche->convertir_python(out, indent);
+  out << " " << m_operateur.getChaine() << " ";
+  return m_operandeDroit->convertir_python(out, indent);
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudFonction
 ////////////////////////////////////////////////////////////////////////////////
 
-NoeudFonction::NoeudFonction(NoeudSeqInst* parent, TableSymboles* globals)
+NoeudFonction::NoeudFonction(NoeudSeqInst* parent, TableSymboles* globals, Symbole self)
 : NoeudSeqInst(parent, nullptr)
 , m_globals(globals)
 , m_stack()
+, m_parametres(0)
+, m_self(self)
 {
-    m_stack.push(TableSymboles());
+    //m_stack.push_back(TableSymboles());
 }
 
 Symbole NoeudFonction::chercheAjoute(Symbole s){
@@ -166,7 +156,7 @@ Symbole NoeudFonction::chercheAjoute(Symbole s){
     }
     catch(...){
         vector<Symbole>::iterator i;
-        i = m_variables.begin();
+        i = m_variables.begin() + m_parametres;
         while (i < m_variables.end() && (*i).getChaine() < s.getChaine()) i++;
         if (i == m_variables.end() || (*i).getChaine() != s.getChaine()) // si pas trouvé...
           i = m_variables.insert(i, s);
@@ -179,15 +169,40 @@ Symbole NoeudFonction::chercheAjoute(Symbole s){
 void NoeudFonction::ajoute(Symbole s, bool parametre){
   m_variables.push_back(s);
   if(parametre)
-    m_parametres.push_back(&m_variables.back());
+    m_parametres++;
+}
+
+SymboleValue* NoeudFonction::getReturn(){
+    return getTable().chercheAjoute(Symbole("__func_return_val__"));
 }
 Value NoeudFonction::executer(){
-  m_globals->chercheAjoute(Symbole("__func_return_val__"))->setValeur(0);
-  for (unsigned int i = 0; i < m_instructions.size() && exec; i++)
+  
+  for (unsigned int i = 0; i < m_instructions.size() && exec; i++){
     m_instructions[i]->executer(); // on exécute chaque instruction de la séquence
-  Value v = m_globals->cherche(Symbole("__func_return_val__"))->getValue();
+  }
+  Value v;
+  try{
+    v = getTable().cherche(Symbole("__func_return_val__"))->getValue();
+  }catch(...){}
   m_stack.pop();
   return v;
+}
+
+std::ostream& NoeudFonction::convertir_python(std::ostream& out, int& indent){
+  out << "def " << m_self.getChaine() << "(";
+  for(int i = 0; i < m_parametres; i++){
+    out << m_variables[i].getChaine();
+    if(i < m_parametres-1)
+      out << ", ";
+  }
+  out << "):" << std::endl << tab(++indent);
+  for (unsigned int i = 0; i < m_instructions.size(); i++){
+    m_instructions[i]->convertir_python(out, indent);
+    out << endl << tab(indent);
+  }
+
+  out << std::endl << tab(--indent);
+  return out;// << std::endl;
 }
 
 
@@ -196,10 +211,30 @@ Value NoeudFonction::executer(){
 ////////////////////////////////////////////////////////////////////////////////
 
 Value NoeudVariable::executer(){
-    SymboleValue* s = getFunc()->getTable().chercheAjoute(m_symbole);
+    SymboleValue* s;
+    try{
+      s = getFunc()->getGlobals()->cherche(m_symbole);
+    }
+    catch(...){
+      s = getFunc()->getTable().chercheAjoute(m_symbole);
+    }
+    
     return s->executer();
 }
+void NoeudVariable::setValue(Value v){
+    SymboleValue* s;
+    try{
+      s = getFunc()->getGlobals()->cherche(m_symbole);
+    }
+    catch(...){
+      s = getFunc()->getTable().chercheAjoute(m_symbole);
+    }
+    s->setValeur(v);
+}
 
+std::ostream& NoeudVariable::convertir_python(std::ostream& out, int& indent){
+  return out << m_symbole.getChaine();
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudCall
 ////////////////////////////////////////////////////////////////////////////////
@@ -208,18 +243,29 @@ void NoeudCall::ajoute(Noeud* arg){
   m_args.push_back(arg);
 }
 Value NoeudCall::executer(){
-  NoeudFonction* f = (NoeudFonction*)m_target_func->executer();
-  if(f->m_parametres.size() != m_args.size()){
+  NoeudFonction* f = m_target_func->executer();
+  if(f->m_parametres != m_args.size()){
     throw SyntaxeException("Nombre de paramètres incorrect");
   }
   std::vector<Value> vals; 
-  for(unsigned int i = 0; i < f->m_parametres.size(); i++)
+  for(unsigned int i = 0; i < f->m_parametres; i++)
     vals.push_back(m_args[i]->executer());
   f->push();
-  for(unsigned int i = 0; i < f->m_parametres.size(); i++)
-    f->getTable().chercheAjoute(*f->m_parametres[i])->setValeur(vals[i]);
+  for(unsigned int i = 0; i < f->m_parametres; i++)
+    f->getTable().chercheAjoute(f->m_variables[i])->setValeur(vals[i]);
   
+
   return f->executer();
+}
+std::ostream& NoeudCall::convertir_python(std::ostream& out, int& indent){
+  m_target_func->convertir_python(out, indent);
+  out << "(";
+  for(unsigned int i = 0; i < m_args.size(); i++){
+    m_args[i]->convertir_python(out, indent);
+    if(i < m_args.size()-1)
+      out << ", ";
+  }
+  return out << ")";
 }
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstSi
@@ -245,6 +291,26 @@ void NoeudInstSiRiche::ajoute(Noeud* instruction){
         m_conditions.push_back(instruction);
     state = !state;
 }
+
+std::ostream& NoeudInstSiRiche::convertir_python(std::ostream& out, int& indent){
+  out << "if ";
+  m_conditions[0]->convertir_python(out, indent);
+  out << ":" << std::endl;
+  m_sequences[0]->convertir_python(out, indent);
+  for(unsigned int i = 1; i < m_conditions.size(); i++){
+    out << "elif ";
+    m_conditions[i]->convertir_python(out, indent);
+    out << ":" << std::endl;
+    m_sequences[i]->convertir_python(out, indent);
+  }
+  //out << std::endl << tab(indent);
+  if(m_conditions.size() < m_sequences.size()){
+    out << "else:" << std::endl;
+    m_sequences.back()->convertir_python(out, indent);
+  }
+  return out;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstRepeter
 ////////////////////////////////////////////////////////////////////////////////
@@ -263,6 +329,20 @@ Value NoeudInstRepeter::executer(){
 void NoeudInstRepeter::init(Noeud* condition){
   m_condition = condition;
 }
+
+std::ostream& NoeudInstRepeter::convertir_python(std::ostream& out, int& indent){
+  out << "while True:" << std::endl << tab(++indent);
+  for(unsigned int i = 0; i < m_instructions.size(); i++){
+    m_instructions[i]->convertir_python(out, indent);
+    out << std::endl;
+  }
+  out << "if ";
+  m_condition->convertir_python(out, indent);
+  out << std::endl << tab(++indent) << "break" << std::endl;
+  indent -= 2;
+  return out;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstUntil
 ////////////////////////////////////////////////////////////////////////////////
@@ -279,6 +359,19 @@ Value NoeudInstUntil::executer(){
 void NoeudInstUntil::init(Noeud* condition){
   m_condition = condition;
 }
+
+std::ostream& NoeudInstUntil::convertir_python(std::ostream& out, int& indent){
+  out << "while Not(";
+  m_condition->convertir_python(out,indent);
+  out << "):" << std::endl << tab(++indent);
+  for(unsigned int i = 0; i < m_instructions.size(); i++){
+    m_instructions[i]->convertir_python(out, indent);
+    out << std::endl << tab(indent);
+  }
+  --indent;
+  return out;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstTantQue
 ////////////////////////////////////////////////////////////////////////////////
@@ -294,6 +387,18 @@ Value NoeudInstTantQue::executer() {
 }
 void NoeudInstTantQue::init(Noeud* condition){
   m_condition = condition;
+}
+
+std::ostream& NoeudInstTantQue::convertir_python(std::ostream& out, int& indent){
+  out << "while ";
+  m_condition->convertir_python(out,indent);
+  out << ":" << std::endl << tab(++indent);
+  for(unsigned int i = 0; i < m_instructions.size(); i++){
+    m_instructions[i]->convertir_python(out, indent);
+    out << std::endl << tab(indent);
+  }
+  --indent;
+  return out;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -314,6 +419,21 @@ Value NoeudInstDoWhile::executer(){
   }while(exec && m_condition->executer());
   return 0;
 }
+
+std::ostream& NoeudInstDoWhile::convertir_python(std::ostream& out, int& indent){
+  out << "while True:" << std::endl;
+  ++indent;
+  for(unsigned int i = 0; i < m_instructions.size(); i++){
+    m_instructions[i]->convertir_python(out, indent);
+    out << std::endl << tab(indent);
+  }
+  out << "if Not(";
+  m_condition->convertir_python(out, indent);
+  out << ")" << std::endl << tab(++indent) << "break" << std::endl;
+  indent -=2 ;
+  return out;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstPour
 ////////////////////////////////////////////////////////////////////////////////
@@ -335,6 +455,18 @@ void NoeudInstPour::init(Noeud* initialisation, Noeud* condition, Noeud* iterati
   m_iteration = iteration;
 }
 
+std::ostream& NoeudInstPour::convertir_python(std::ostream& out, int& indent){
+  m_initialisation->convertir_python(out, indent);
+  out << std::endl << tab(indent) << "while ";
+  m_condition->convertir_python(out,indent);
+  out << ":" << std::endl << tab(++indent);
+  for(unsigned int i = 0; i < m_instructions.size(); i++){
+    m_instructions[i]->convertir_python(out, indent);
+    out << std::endl << tab(indent);
+  }
+  m_iteration->convertir_python(out, indent);
+  return out << std::endl << tab(--indent);
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstPrint
 ////////////////////////////////////////////////////////////////////////////////
@@ -354,37 +486,56 @@ Value NoeudInstPrint::executer(){
   return 0;
 }
 
+std::ostream& NoeudInstPrint::convertir_python(std::ostream& out, int& indent){
+  out << "print(";
+  for(unsigned int i = 0; i < m_vals.size(); i++){
+    m_vals[i]->convertir_python(out, indent);
+    if(i < m_vals.size()-1)
+      out << ", ";
+  }
+  return out << ")";
+}
 ////////////////////////////////////////////////////////////////////////////////
 // NoeudInstScan
 ////////////////////////////////////////////////////////////////////////////////
-/*
-NoeudInstScanI::NoeudInstScanI(Noeud* var){
-    Value v;
-    v.scanI();
-    m_affect = new NoeudAffectation(var,v);
-}
+
+NoeudInstScanI::NoeudInstScanI(NoeudSeqInst* parent, NoeudFonction* func, NoeudVariable* var) : Noeud(parent, func), m_var(var){}
 
 Value NoeudInstScanI::executer(){
-  return m_affect->executer();
+  int v;
+  cin >> v;
+  m_var->setValue(v);
+  return v;
+}
+std::ostream& NoeudInstScanI::convertir_python(std::ostream& out, int& indent){
+  m_var->convertir_python(out, indent);
+  return out << " = input(\"\")";
 }
 
-NoeudInstScanI::NoeudInstScanF(Noeud* var){
-    Value v;
-    v.scanF();
-    m_affect = new NoeudAffectation(var,v);
-}
+NoeudInstScanF::NoeudInstScanF(NoeudSeqInst* parent, NoeudFonction* func, NoeudVariable* var) : Noeud(parent, func), m_var(var){}
 
 Value NoeudInstScanF::executer(){
-  return m_affect->executer();
+  float v;
+  cin >> v;
+  m_var->setValue(v);
+  return v;
 }
 
-NoeudInstScanI::NoeudInstScanS(Noeud* var){
-    Value v;
-    v.scanS();
-    m_affect = new NoeudAffectation(var,v);
+std::ostream& NoeudInstScanF::convertir_python(std::ostream& out, int& indent){
+  m_var->convertir_python(out, indent);
+  return out << " = input(\"\")";
 }
+
+NoeudInstScanS::NoeudInstScanS(NoeudSeqInst* parent, NoeudFonction* func, NoeudVariable* var) : Noeud(parent, func), m_var(var){}
 
 Value NoeudInstScanS::executer(){
-  return m_affect->executer();
+  std::string v;
+  cin >> v;
+  m_var->setValue(v);
+  return v;
 }
-*/
+
+std::ostream& NoeudInstScanS::convertir_python(std::ostream& out, int& indent){
+  m_var->convertir_python(out, indent);
+  return out << " = raw_input(\"\")";
+}

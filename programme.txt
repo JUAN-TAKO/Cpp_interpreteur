@@ -2,12 +2,86 @@ def factorial(n)
     if(n <= 1)
         return 1;
     else
-        print(n);
         return factorial(n-1)*n;
     end
 end
 
+def callbackFunc()
+    print("callback appelle !");
+end
+
+def calculFactorial(n, callback)
+    print("Test calcul de factorielle avec callback");
+    f = factorial(n);
+    callback();
+    return f;
+end
+
+def testFor()
+    print("Test for");
+    for i in 0:10
+        print("boucle : ", i);
+    end
+end
+
+def testFor2()
+    print("Test for 2");
+    for(i = 0; i < 10; i++)
+        print("boucle 2 : ", i);
+    end
+end
+
+def testInc(var)
+    print("Test incrémentations");
+    print("a : ", var);
+    var++;
+    print("a++ : ", var);
+    var--;
+    print("a-- : ", var);
+    var *= 2;
+    print("a *= 2");
+    print(var);
+end
+
+def testScans()
+  print("Test scans : ");
+  print("nombre entier : ");  
+  scanI(a);
+  print("nombre lu : ");
+  print(a);
+  print("nombre réel : ");
+  scanF(a);
+  print("nombre lu : ");
+  print(a);
+  print("chaine de caractere : ");
+  scanS(a);
+  print("chaine lu : ");
+  print(a);
+end
+
+def testPrio()
+    print("Test priorites");
+    t = 2 + 3 * 4;
+    print("2 + 3 * 4 == ", t);
+    if(t == 14)
+        print("OK");
+    else
+        print("Erreur");
+    end
+end
+
 def main()
-  print(factorial(4));
+  n = 6;
+  res = calculFactorial(n, callbackFunc);
+  print("Resultat factorielle ", n, " = ", res);
+  testFor();
+  testFor2();
+  a = 2;
+  print(a);
+  testInc(a);
+
+  #testScans();
+
+  testPrio();
   return 0;
 end

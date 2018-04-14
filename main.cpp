@@ -28,7 +28,9 @@ int main(int argc, char* argv[]) {
     else{
         std::cout << "Erreur" << std::endl;
     }
-   
+    cout << endl << "================ Conversion en python" << endl;
+    interpreteur.convertir_python(cout);
+
     // Et on vérifie qu'il a fonctionné en regardant comment il a modifié la table des symboles
     //cout << endl << "================ Table des symboles apres exécution : " << interpreteur->getArbre();
   } catch (InterpreteurException & e) {

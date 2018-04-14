@@ -15,6 +15,7 @@ public:
 	  SymboleValue(const Symbole & s); // Construit un symbole valué à partir d'un symbole existant s
 	  ~SymboleValue( ) {}
 	  Value executer();         // exécute le SymboleValue (revoie sa valeur !)
+	  std::ostream& convertir_python(std::ostream& out, int& indent);
 	  inline void setValeur(Value valeur)    { this->m_valeur=valeur; m_defini=true;  } // accesseur
 	  inline bool estDefini()              { return m_defini;                       } // accesseur
           inline int getType() const{
