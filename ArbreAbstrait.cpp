@@ -334,7 +334,7 @@ std::ostream& NoeudInstRepeter::convertir_python(std::ostream& out, int& indent)
   out << "while True:" << std::endl << tab(++indent);
   for(unsigned int i = 0; i < m_instructions.size(); i++){
     m_instructions[i]->convertir_python(out, indent);
-    out << std::endl;
+    out << std::endl << tab(indent);
   }
   out << "if ";
   m_condition->convertir_python(out, indent);
@@ -421,8 +421,7 @@ Value NoeudInstDoWhile::executer(){
 }
 
 std::ostream& NoeudInstDoWhile::convertir_python(std::ostream& out, int& indent){
-  out << "while True:" << std::endl;
-  ++indent;
+  out << "while True:" << std::endl << tab(++indent);
   for(unsigned int i = 0; i < m_instructions.size(); i++){
     m_instructions[i]->convertir_python(out, indent);
     out << std::endl << tab(indent);

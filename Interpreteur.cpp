@@ -365,7 +365,7 @@ Noeud* Interpreteur::instPour(NoeudSeqInst* parent){
       Noeud* n2 = nullptr;
       if(m_lecteur.getSymbole() == ":"){
         testerEtAvancer(":");
-        n2 = facteur(pour);
+        n2 = expression(pour);
       }
       else{
         n2 = n1;
@@ -373,9 +373,8 @@ Noeud* Interpreteur::instPour(NoeudSeqInst* parent){
       }
       if(m_lecteur.getSymbole() == "|"){
         testerEtAvancer("|");
-        tester("<NUMBER>");
-        i = new NoeudVariable(parent, m_func, m_func->chercheAjoute(m_lecteur.getSymbole()));
-        m_lecteur.avancer();
+        i = expression(parent);
+        //m_lecteur.avancer();
       }
       else{
         i = m_globals.chercheAjoute(Symbole("1"));
@@ -410,6 +409,7 @@ Noeud* Interpreteur::instRepeter(NoeudSeqInst* parent){
     NoeudInstRepeter* rep = new NoeudInstRepeter(parent, m_func);
     testerEtAvancer("repeat");
     seqInst(rep);
+    testerEtAvancer("end");
     testerEtAvancer("until");
     testerEtAvancer("(");
     Noeud* cond = expBool(rep);
@@ -422,6 +422,7 @@ Noeud* Interpreteur::instDoWhile(NoeudSeqInst* parent){
     NoeudInstDoWhile* dw = new NoeudInstDoWhile(parent, m_func);
     testerEtAvancer("do");
     seqInst(dw);
+    testerEtAvancer("end");
     testerEtAvancer("while");
     testerEtAvancer("(");
     Noeud* cond = expBool(dw);

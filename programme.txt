@@ -19,16 +19,56 @@ end
 
 def testFor()
     print("Test for");
-    for i in 0:10
-        print("boucle : ", i);
+    for i in 10:0|-2
+        print("boucle for : ", i);
     end
 end
 
 def testFor2()
     print("Test for 2");
     for(i = 0; i < 10; i++)
-        print("boucle 2 : ", i);
+        print("boucle for 2 : ", i);
     end
+end
+
+def testWhile()
+    print("Test while");
+    i = 0;
+    while (i < 10)
+        print("boucle while : ", i);
+        i++;
+    end 
+end
+
+def testDoWhile()
+    print("Test do while");
+    i = 0;
+    do
+        print("boucle do while : ", i);
+        i++;
+    end
+    while(i < 10)
+end
+
+def testUntil()
+    print("Test until");
+    i = 0;
+    until(i == 10)
+        print("boucle until : ", i);
+        i++;
+    end
+
+end
+
+
+def testRepeat()
+    print("Test repeat");
+    i = 0;
+    repeat
+        print("boucle repeat : ", i);
+        i++;
+    end
+    until(i == 10)
 end
 
 def testInc(var)
@@ -72,16 +112,27 @@ end
 
 def main()
   n = 6;
-  res = calculFactorial(n, callbackFunc);
+  res = calculFactorial(n, callbackFunc); #langage fonctionnel + supporte la recursivite, les variables sont locales aux fonctions
   print("Resultat factorielle ", n, " = ", res);
-  testFor();
-  testFor2();
+  
+  #2 syntaxes de for
+  testFor(); # style C++  
+  testFor2(); #for i in debut:fin|pas 
+
+  #4 autres types de boucles
+  testWhile();
+  testDoWhile();
+  testUntil();
+  testRepeat();
+  
+  # racourcis : a++, a--, a *= b, a += b ... (ne gere pas la pre-incrementation, la post-incrementation se comporte comme une pre-incrementation)
   a = 2;
-  print(a);
   testInc(a);
 
+  #decommenter pour tester les scans
   #testScans();
 
+  #priorites des operateurs
   testPrio();
   return 0;
 end

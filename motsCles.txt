@@ -5,6 +5,7 @@ in
 if
 else
 elseif
+do
 while
 repeat
 until
